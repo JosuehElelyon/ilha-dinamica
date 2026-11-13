@@ -94,6 +94,10 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
   set_autostart: (a) => a.enabled,
   pick_path: () => null,
   open_in_antigravity: () => true,
+  open_terminal: () => true,
+  git_status: (a) => ((a.paths as string[]) || []).map((path, i) => ({
+    path, is_git: true, branch: i % 2 === 0 ? 'main' : 'feat/ajuste-api', dirty: i % 2 === 0 ? 0 : 2
+  })),
   fetch_ics: () => {
     const d = new Date()
     const pad2 = (n: number) => String(n).padStart(2, '0')

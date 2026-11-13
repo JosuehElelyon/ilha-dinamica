@@ -12,6 +12,7 @@ import type { Devices, VolInfo } from './lib/types'
 import IslandPill from './components/IslandPill.vue'
 import IslandHeader from './components/IslandHeader.vue'
 import NavBar from './components/NavBar.vue'
+import CommandPalette from './components/CommandPalette.vue'
 import HomeTab from './components/tabs/HomeTab.vue'
 import ActionsTab from './components/tabs/ActionsTab.vue'
 import ToolsTab from './components/tabs/ToolsTab.vue'
@@ -73,7 +74,15 @@ function setPinned(v: boolean) {
 }
 api.onHover(inside => (inside ? enter() : leave()))
 api.onToggle(() => setPinned(!island.expanded))
+api.onPalette(() => { setPinned(true); island.paletteOpen = true })
 api.onAnchor(a => (island.anchor = a))
+window.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault()
+    setPinned(true)
+    island.paletteOpen = !island.paletteOpen
+  }
+})
 window.addEventListener('blur', () => { if (!island.hovering) collapse(true) })
 document.addEventListener('click', () => (island.menuOpen = false))
 function onFocusOut() { setTimeout(() => { if (!island.hovering) collapse() }, 60) }
@@ -200,6 +209,7 @@ onMounted(async () => {
         <component :is="TABS[island.tab]" :key="island.tab" class="tab" />
       </main>
       <NavBar />
+      <CommandPalette v-if="island.paletteOpen" />
     </div>
   </div>
 </template>

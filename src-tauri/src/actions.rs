@@ -70,6 +70,81 @@ pub fn open_in_antigravity(path: String) -> bool {
     }
 }
 
+#[derive(serde::Serialize)]
+pub struct RepoGitStatus {
+    pub path: String,
+    pub is_git: bool,
+    pub branch: String,
+    pub dirty: usize,
+}
+
+/// Abre o Terminal (Windows Terminal ou PowerShell) diretamente na pasta do repositório
+#[tauri::command]
+pub fn open_terminal(path: String) -> bool {
+    let p = path.trim().replace('"', "");
+    if p.is_empty() {
+        return false;
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        if std::process::Command::new("wt.exe")
+            .args(["-d", &p])
+            .spawn()
+            .is_ok()
+        {
+            return true;
+        }
+        std::process::Command::new("cmd.exe")
+            .raw_arg(format!("/d /s /c start \"\" powershell.exe -NoExit -Command \"Set-Location -LiteralPath '{p}'\""))
+            .spawn()
+            .is_ok()
+    }
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("x-terminal-emulator")
+            .current_dir(&p)
+            .spawn()
+            .is_ok()
+    }
+}
+
+/// Consulta branch atual e quantidade de alterações não commitadas para uma lista de pastas
+#[tauri::command(async)]
+pub fn git_status(paths: Vec<String>) -> Vec<RepoGitStatus> {
+    paths
+        .into_iter()
+        .map(|raw| {
+            let p = raw.trim().to_string();
+            let br = crate::util::hidden("git")
+                .args(["-C", &p, "rev-parse", "--abbrev-ref", "HEAD"])
+                .output();
+            let Ok(br_out) = br else {
+                return RepoGitStatus { path: p, is_git: false, branch: String::new(), dirty: 0 };
+            };
+            if !br_out.status.success() {
+                return RepoGitStatus { path: p, is_git: false, branch: String::new(), dirty: 0 };
+            }
+            let branch = String::from_utf8_lossy(&br_out.stdout).trim().to_string();
+            let dirty = crate::util::hidden("git")
+                .args(["-C", &p, "status", "--porcelain"])
+                .output()
+                .map(|o| {
+                    if !o.status.success() {
+                        0
+                    } else {
+                        String::from_utf8_lossy(&o.stdout)
+                            .lines()
+                            .filter(|l| !l.trim().is_empty())
+                            .count()
+                    }
+                })
+                .unwrap_or(0);
+            RepoGitStatus { path: p, is_git: true, branch, dirty }
+        })
+        .collect()
+}
+
 #[tauri::command]
 pub async fn pick_path(app: AppHandle, kind: String) -> Option<String> {
     let win = app.get_webview_window("main");

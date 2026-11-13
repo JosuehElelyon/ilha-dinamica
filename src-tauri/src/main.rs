@@ -66,6 +66,13 @@ fn main() {
             }) {
                 logger::log(format!("atalho Ctrl+Alt+Espaço indisponível: {e}"));
             }
+            if let Err(e) = app.global_shortcut().on_shortcut("ctrl+alt+k", |app, _s, event| {
+                if event.state == ShortcutState::Pressed {
+                    let _ = app.emit("palette", ());
+                }
+            }) {
+                logger::log(format!("atalho Ctrl+Alt+K indisponível: {e}"));
+            }
             if let Err(e) = tray::create(&handle) {
                 logger::log(format!("ícone da bandeja: {e}"));
             }
@@ -115,6 +122,8 @@ fn main() {
             clean::flush_dns,
             actions::run_action,
             actions::open_in_antigravity,
+            actions::open_terminal,
+            actions::git_status,
             actions::pick_path,
             actions::notify,
             actions::relaunch_admin,

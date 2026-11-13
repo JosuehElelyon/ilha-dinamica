@@ -3,7 +3,7 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 import { listen as tauriListen } from '@tauri-apps/api/event'
 import type {
-  Adapter, Anchor, Friend, Game, SteamInfo, AppData, Clip, MrList, Org, VpnResult, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
+  Adapter, Anchor, Friend, Game, SteamInfo, AppData, Clip, MrList, Org, RepoGitStatus, VpnResult, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
 } from './types'
 import { mock } from './mock'
 
@@ -62,6 +62,8 @@ export const api = {
   // ações e app
   runAction: (target: string) => invoke<boolean>('run_action', { target }),
   openInAntigravity: (path: string) => invoke<boolean>('open_in_antigravity', { path }),
+  openTerminal: (path: string) => invoke<boolean>('open_terminal', { path }),
+  gitStatus: (paths: string[]) => invoke<RepoGitStatus[]>('git_status', { paths }),
   pickPath: (kind: 'file' | 'folder') => invoke<string | null>('pick_path', { kind }),
   fetchIcs: (url: string) => invoke<string>('fetch_ics', { url }),
   notify: (title: string, body: string) => invoke<void>('notify', { title, body }),
@@ -90,6 +92,7 @@ export const api = {
   // eventos vindos do Rust
   onHover: (cb: (inside: boolean) => void) => on('hover', cb),
   onToggle: (cb: () => void) => on('toggle', cb),
+  onPalette: (cb: () => void) => on('palette', cb),
   onClips: (cb: (l: Clip[]) => void) => on('clips', cb),
   onMedia: (cb: (m: MediaInfo) => void) => on('media', cb),
   onVol: (cb: (v: VolInfo) => void) => on('vol', cb),

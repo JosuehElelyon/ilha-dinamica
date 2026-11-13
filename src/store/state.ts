@@ -22,6 +22,7 @@ export const island = reactive({
   hovering: false,
   tab: 'home' as TabId,
   menuOpen: false,
+  paletteOpen: false,
   toast: null as Toast | null,
   // vindos do backend
   isAdmin: false,
@@ -145,6 +146,12 @@ export async function refreshMeetings(icsUrl: string) {
   } finally {
     meetingsState.loading = false
   }
+}
+
+/** Reunião acontecendo agora ou começando nos próximos 15 min */
+export function nextMeeting(): Meeting | null {
+  const t = now.value
+  return meetings.value.find(m => !m.allDay && m.endMs > t && m.startMs - t <= 15 * 60_000) || null
 }
 
 /** Verificações que rodam a cada tique do relógio */

@@ -30,6 +30,7 @@ export interface Adapter { name: string; desc: string; up: boolean; ip: string }
 
 export type VpnType = 'windows' | 'openvpnconnect' | 'openvpn' | 'wireguard' | 'cisco' | 'forti' | 'globalprotect' | 'custom' | 'none'
 export interface OrgRepo { name: string; path: string }
+export interface RepoGitStatus { path: string; is_git: boolean; branch: string; dirty: number }
 export interface Org {
   id: string
   name: string

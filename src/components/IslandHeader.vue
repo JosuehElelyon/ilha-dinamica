@@ -3,10 +3,11 @@
 import { computed } from 'vue'
 import { api } from '../lib/api'
 import { DIAS, MESES, pad } from '../lib/format'
-import { island, live, now, stopwatch, focus, timer, checkUpdate, installUpdate } from '../store/state'
+import { island, live, now, stopwatch, focus, timer, checkUpdate, installUpdate, nextMeeting } from '../store/state'
 import { S, save } from '../store/settings'
 
 const emit = defineEmits<{ pin: [boolean] }>()
+const meet = computed(() => nextMeeting())
 
 const date = computed(() => {
   const d = new Date(now.value)
@@ -35,9 +36,11 @@ function center() { island.menuOpen = false; api.resetPosition() }
     <span class="mono">{{ date }}</span>
     <span class="eyes" :class="{ busy }"><i /><i /></span>
     <span class="right">
+      <button v-if="meet?.joinUrl" class="meetbtn" :title="`Entrar em: ${meet.summary}`" @click.stop="api.runAction(meet.joinUrl)">📹 Entrar</button>
       <button v-if="island.update.available" class="upd" :disabled="island.update.installing"
               :title="`Instalar a versão ${island.update.available}`" @click.stop="installUpdate()">
         {{ island.update.installing ? '⏳ Atualizando…' : `⬆ ${island.update.available}` }}</button>
+      <button class="icon-btn kbtn" title="Paleta de comandos (Ctrl+Alt+K)" @click.stop="island.paletteOpen = !island.paletteOpen">⌘K</button>
       <span class="clock mono">{{ clock }}</span>
       <button class="icon-btn" title="Opções" @click.stop="island.menuOpen = !island.menuOpen">•••</button>
     </span>
@@ -84,4 +87,8 @@ header.draggable:active { cursor: grabbing; }
 .status { padding: 0 8px 4px 32px; color: var(--mute); font-size: 11px; }
 .upd { padding: 2px 9px; border-radius: 10px; background: var(--accent); color: #111; font-size: 11px; font-weight: 700; }
 .upd:disabled { opacity: .7; }
+.meetbtn { padding: 2px 9px; border-radius: 10px; background: #5b7cff; color: #fff; font-size: 11px; font-weight: 700; }
+.meetbtn:hover { background: #7390ff; }
+.kbtn { font-family: var(--mono); font-size: 10.5px; color: var(--mute); padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line); }
+.kbtn:hover { color: #fff; border-color: rgba(255,255,255,.25); }
 </style>

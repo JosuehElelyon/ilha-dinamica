@@ -2,7 +2,7 @@
 // Trabalho: um cartão por órgão com VPN (liga/desliga) e Merge Requests do GitLab
 import { computed, reactive, ref } from 'vue'
 import { api } from '../../lib/api'
-import type { Mr, Org, OrgRepo } from '../../lib/types'
+import type { Mr, Org, OrgRepo, RepoGitStatus } from '../../lib/types'
 import { ACCENTS, S, save, newOrg } from '../../store/settings'
 import { showToast } from '../../store/state'
 import { VPN_TYPES, work, st, toggleVpn, loadMrs, refreshSecrets, adapterKey, pipeIcon } from '../../store/work'
@@ -39,11 +39,24 @@ async function openRepo(r: OrgRepo) {
     ? { icon: '🚀', text: `Abrindo ${r.name} no Antigravity…`, ms: 2200 }
     : { icon: '⚠️', text: 'Antigravity não encontrado — verifique a instalação', alert: true, ms: 3500 })
 }
+const gitMap = reactive<Record<string, RepoGitStatus>>({})
+const gitLoading = ref(false)
+async function loadGitStatus(o: Org) {
+  const paths = (o.repos || []).map(r => r.path).filter(Boolean)
+  if (!paths.length) return
+  gitLoading.value = true
+  try {
+    const res = await api.gitStatus(paths)
+    for (const item of res) gitMap[item.path] = item
+  } finally {
+    gitLoading.value = false
+  }
+}
 function openReposBtn(o: Org) {
   const list = o.repos || []
-  if (list.length === 1) return openRepo(list[0])
-  if (list.length > 1) { view.value = { kind: 'repos', id: o.id }; return }
-  openConfig(o)
+  if (!list.length) return openConfig(o)
+  view.value = { kind: 'repos', id: o.id }
+  loadGitStatus(o)
 }
 async function saveConfig() {
   const o = form.org!
@@ -155,14 +168,22 @@ const mrClass = (m: Mr) => ({ draft: m.draft })
     <div class="top">
       <button class="pillbtn" @click="view = { kind: 'cards' }">‹ Voltar</button>
       <b class="ttl">{{ org.name }} · Repositórios</b>
+      <button class="pillbtn" :disabled="gitLoading" title="Atualizar status Git" @click="loadGitStatus(org)">{{ gitLoading ? '…' : '↻' }}</button>
       <button class="pillbtn" @click="openConfig(org)">⚙ Configurar</button>
     </div>
     <div class="repolist">
       <div v-for="(r, idx) in (org.repos || [])" :key="idx" class="repocard">
         <div class="repometa">
-          <b>{{ r.name }}</b>
+          <div class="repotitle">
+            <b>{{ r.name }}</b>
+            <span v-if="gitMap[r.path]?.is_git" class="branch mono">🌿 {{ gitMap[r.path].branch }}</span>
+            <span v-if="gitMap[r.path]?.is_git" class="gstate" :class="gitMap[r.path].dirty ? 'dirty' : 'clean'">
+              {{ gitMap[r.path].dirty ? `● ${gitMap[r.path].dirty} alt.` : '✓ limpo' }}
+            </span>
+          </div>
           <span class="mute mono tiny">{{ r.path }}</span>
         </div>
+        <button class="pillbtn" title="Abrir no Terminal" @click="api.openTerminal(r.path)">💻</button>
         <button class="pillbtn" title="Abrir pasta no Explorer" @click="openUrl(r.path)">📂</button>
         <button class="pillbtn primary" @click="openRepo(r)">🚀 Antigravity</button>
       </div>
@@ -335,5 +356,10 @@ a { color: var(--accent-2); cursor: pointer; text-decoration: underline; }
 .repocard { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.04); border-left: 2px solid var(--c); }
 .repometa { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .repometa b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.repometa span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.repometa span.mute { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.repotitle { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.branch { font-size: 10.5px; padding: 1px 6px; border-radius: 6px; background: rgba(255,255,255,.08); color: #d5d5de; flex: none; }
+.gstate { font-size: 10px; font-weight: 600; flex: none; }
+.gstate.dirty { color: #ffb070; }
+.gstate.clean { color: #5be39a; }
 </style>
