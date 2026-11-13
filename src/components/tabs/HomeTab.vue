@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Início: cards personalizáveis (mover, remover, adicionar), cronômetro com meta/som, mídia e foco ajustável
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { api } from '../../lib/api'
 import { fmt, ymd } from '../../lib/format'
 import { DEFAULT_HOME_CARDS, HOME_CARDS, S, save, type HomeCardId } from '../../store/settings'
@@ -13,19 +13,22 @@ const has = computed(() => !!live.media.title)
 const playing = computed(() => live.media.status === 'Playing')
 
 /* ---------------- Personalização dos cards ---------------- */
-const editMode = ref(false)
+const editMode = computed(() => island.homeEdit)
 const availableToAdd = computed(() =>
   (Object.keys(HOME_CARDS) as HomeCardId[]).filter(id => !S.homeCards.includes(id))
 )
+const twoRows = computed(() => S.homeCards.length > 4)
 const gridStyle = computed(() => {
-  const scroll = S.homeCards.length > 3
+  if (twoRows.value) {
+    return {
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      gridTemplateRows: 'repeat(2, minmax(0, 1fr))'
+    }
+  }
+  const hasMedia = S.homeCards.includes('media')
   return {
     gridTemplateColumns: S.homeCards
-      .map(id =>
-        id === 'media'
-          ? (scroll ? 'minmax(230px, 1.5fr)' : 'minmax(0, 1.5fr)')
-          : (scroll ? 'minmax(165px, 1fr)' : 'minmax(0, 1fr)')
-      )
+      .map(id => (id === 'media' && hasMedia ? (S.homeCards.length === 4 ? 'minmax(0, 1.45fr)' : 'minmax(0, 1.55fr)') : 'minmax(0, 1fr)'))
       .join(' ')
   }
 })
@@ -99,12 +102,7 @@ const nextMeetToday = computed(() => {
 
 <template>
   <div class="home-wrap">
-    <button class="edit-toggle" :class="{ active: editMode }" :title="editMode ? 'Concluir edição da Home' : 'Personalizar cards da Home'"
-            @click="editMode = !editMode">
-      {{ editMode ? '✓ Concluir' : '✎' }}
-    </button>
-
-    <div class="grid" :style="gridStyle">
+    <div class="grid" :class="{ dense: S.homeCards.length >= 4, 'two-rows': twoRows }" :style="gridStyle">
       <template v-for="(cid, idx) in S.homeCards" :key="cid">
         <!-- ================= CRONÔMETRO ================= -->
         <div v-if="cid === 'stopwatch'" class="card sw" :class="{ running: stopwatch.running, editing: editMode }"
@@ -190,7 +188,7 @@ const nextMeetToday = computed(() => {
             </div>
           </div>
           <div class="big mono">{{ fmt(focusLeft()) }}</div>
-          <div v-if="!focus.running && focus.mode === 'focus'" class="segbar" @click.stop>
+          <div v-if="!focus.running && focus.mode === 'focus' && !twoRows" class="segbar" @click.stop>
             <button v-for="m in [15, 25, 45, 60]" :key="m" :class="{ on: S.focusMinutes === m }" @click="setFocusMinutes(m)">{{ m }}m</button>
           </div>
           <div class="row">
@@ -216,7 +214,7 @@ const nextMeetToday = computed(() => {
           </div>
           <span class="label mono">TIMER</span>
           <div class="big mono">{{ fmt(timerLeft()) }}</div>
-          <div v-if="!timer.running" class="segbar" @click.stop>
+          <div v-if="!timer.running && !twoRows" class="segbar" @click.stop>
             <button v-for="m in [1, 5, 10, 15]" :key="m" :class="{ on: timer.total === m * 60 }" @click="timerPreset(m)">{{ m }}m</button>
           </div>
           <div class="row">
@@ -279,24 +277,28 @@ const nextMeetToday = computed(() => {
 </template>
 
 <style scoped>
-.home-wrap { position: relative; display: flex; flex-direction: column; gap: 6px; height: 100%; }
-.edit-toggle {
-  position: absolute; top: -11px; right: 2px; z-index: 15; padding: 2px 8px; border-radius: 999px;
-  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); color: var(--mute); font-size: 10.5px; font-weight: 600;
-}
-.edit-toggle:hover, .edit-toggle.active { background: var(--accent); border-color: transparent; color: #111; }
+.home-wrap { display: flex; flex-direction: column; gap: 8px; }
 
 .grid {
   flex: 1; min-height: 0; display: grid; gap: 10px;
-  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
 }
-.grid::-webkit-scrollbar { display: none; }
 .card {
   position: relative; border-radius: 22px; padding: 14px 16px; overflow: hidden;
-  display: flex; flex-direction: column; min-width: 0;
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
   border: 1px solid rgba(255,255,255,.11);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 8px 20px rgba(0,0,0,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 6px 16px rgba(0,0,0,.22);
 }
+.grid.dense .card { padding: 11px 13px; border-radius: 18px; }
+.grid.two-rows { gap: 8px; }
+.grid.two-rows .card { padding: 8px 12px; border-radius: 16px; }
+.grid.two-rows .big { font-size: 20px; }
+.grid.two-rows .title { font-size: 15px; }
+.grid.two-rows .artist { font-size: 11px; }
+.grid.two-rows .ctrls { right: 8px; bottom: 8px; transform: scale(.86); transform-origin: bottom right; }
+.grid.two-rows .cover { width: 42px; height: 42px; top: 8px; left: 10px; border-radius: 10px; }
+.grid.two-rows .round { width: 24px; height: 24px; }
+.grid.two-rows .mhour { font-size: 17px; margin-top: 2px; }
+
 .card.editing { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.35); }
 .econtrols {
   position: relative; z-index: 12; display: flex; gap: 4px; justify-content: flex-end; margin-bottom: 4px;
@@ -318,17 +320,18 @@ const nextMeetToday = computed(() => {
 .tiny { font-size: 10.5px; white-space: nowrap; }
 
 .label { font-size: 10.5px; opacity: .82; letter-spacing: .04em; }
-.big { font-size: clamp(22px, 3vw, 29px); font-weight: 600; margin-top: auto; letter-spacing: -.01em; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.big { font-size: clamp(20px, 2.7vw, 28px); font-weight: 600; margin-top: auto; letter-spacing: -.01em; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.grid.dense .big { font-size: clamp(18px, 2.3vw, 24px); }
 .sub { font-size: 12px; opacity: .82; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .pill-chip {
   padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.24);
-  border: 1px solid rgba(255,255,255,.12); color: #fff; font-size: 10px;
+  border: 1px solid rgba(255,255,255,.12); color: #fff; font-size: 10px; white-space: nowrap;
 }
 .pill-chip:hover { background: rgba(0,0,0,.42); }
 
 .sw { background: linear-gradient(155deg, color-mix(in srgb, var(--accent), black 58%), var(--accent)); cursor: pointer; }
-.sw.running { box-shadow: inset 0 0 0 1px rgba(255,255,255,.32), 0 8px 20px rgba(0,0,0,.22); }
+.sw.running { box-shadow: inset 0 0 0 1px rgba(255,255,255,.32), 0 6px 16px rgba(0,0,0,.22); }
 .focus { background: linear-gradient(155deg, #211d54, #493ec2 85%); }
 .focus.break { background: linear-gradient(155deg, #0d3a2c, #1d9a68 85%); }
 
@@ -336,15 +339,15 @@ const nextMeetToday = computed(() => {
 .stepper {
   display: inline-flex; align-items: center;
   background: rgba(0,0,0,.24); border: 1px solid rgba(255,255,255,.14);
-  border-radius: 999px; overflow: hidden; height: 22px;
+  border-radius: 999px; overflow: hidden; height: 22px; flex: none;
 }
 .step-btn {
-  width: 22px; height: 22px; display: grid; place-items: center; color: rgba(255,255,255,.9);
+  width: 20px; height: 22px; display: grid; place-items: center; color: rgba(255,255,255,.9);
   transition: background .15s;
 }
 .step-btn:hover { background: rgba(255,255,255,.16); color: #fff; }
 .step-val {
-  padding: 0 5px; font-size: 10px; color: rgba(255,255,255,.88);
+  padding: 0 4px; font-size: 10px; color: rgba(255,255,255,.88);
   border-left: 1px solid rgba(255,255,255,.1); border-right: 1px solid rgba(255,255,255,.1);
   line-height: 22px;
 }
@@ -365,7 +368,7 @@ const nextMeetToday = computed(() => {
 .round {
   width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,.95); color: #111;
   display: grid; place-items: center; box-shadow: 0 3px 10px rgba(0,0,0,.25);
-  transition: transform .15s;
+  transition: transform .15s; flex: none;
 }
 .round:hover { transform: scale(1.07); }
 
@@ -378,10 +381,12 @@ const nextMeetToday = computed(() => {
 .cover-bg { position: absolute; inset: -30px; width: calc(100% + 60px); height: calc(100% + 60px);
   object-fit: cover; filter: blur(26px) saturate(1.4) brightness(.55); }
 .cover { position: absolute; top: 14px; left: 16px; width: 70px; height: 70px; border-radius: 14px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
-.info { position: relative; max-width: 62%; }
-.title { font-size: 23px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.has-cover .title { font-size: 19px; }
-.artist { font-size: 12.5px; opacity: .85; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.info { position: relative; max-width: 58%; }
+.grid.dense .info { max-width: 54%; }
+.title { font-size: 22px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grid.dense .title { font-size: 17px; }
+.has-cover .title { font-size: 18px; }
+.artist { font-size: 12px; opacity: .85; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Controles de mídia em cápsula de vidro */
 .ctrls {
@@ -390,15 +395,18 @@ const nextMeetToday = computed(() => {
   border-radius: 999px; background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.12);
   backdrop-filter: blur(10px);
 }
+.grid.dense .ctrls { right: 10px; bottom: 10px; gap: 2px; }
 .ctl {
   width: 28px; height: 28px; border-radius: 50%; color: rgba(255,255,255,.88);
   display: grid; place-items: center; transition: background .15s, color .15s, transform .15s;
 }
+.grid.dense .ctl { width: 24px; height: 24px; }
 .ctl:hover { background: rgba(255,255,255,.16); color: #fff; }
 .ctl.play {
   width: 34px; height: 34px; background: #fff; color: #111;
   box-shadow: 0 3px 10px rgba(0,0,0,.28);
 }
+.grid.dense .ctl.play { width: 30px; height: 30px; }
 .ctl.play:hover { background: #fff; color: #111; transform: scale(1.06); }
 
 .htimer { background: linear-gradient(155deg, #192636, #274469); }

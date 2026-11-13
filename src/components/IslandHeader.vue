@@ -52,6 +52,11 @@ function center() { island.menuOpen = false; api.resetPosition() }
       <button v-if="island.update.available" class="upd" :disabled="island.update.installing"
               :title="`Instalar a versão ${island.update.available}`" @click.stop="installUpdate()">
         {{ island.update.installing ? '⏳ Atualizando…' : `⬆ ${island.update.available}` }}</button>
+      <button v-if="island.tab === 'home'" class="icon-btn kbtn" :class="{ on: island.homeEdit }"
+              :title="island.homeEdit ? 'Concluir edição da Home' : 'Personalizar cards da Home'"
+              @click.stop="island.homeEdit = !island.homeEdit">
+        {{ island.homeEdit ? '✓ Cards' : '✎' }}
+      </button>
       <button class="icon-btn kbtn" title="Paleta de comandos (Ctrl+Alt+K)" @click.stop="island.paletteOpen = !island.paletteOpen">⌘K</button>
       <span class="clock mono">{{ clock }}</span>
       <button class="icon-btn" title="Opções" @click.stop="island.menuOpen = !island.menuOpen">•••</button>
@@ -89,12 +94,8 @@ header.draggable:active { cursor: grabbing; }
   background: rgba(91, 227, 154, .12); transition: background .15s, transform .15s;
 }
 .wifi-btn:hover { background: rgba(91, 227, 154, .24); transform: scale(1.06); }
-.right { display: flex; align-items: center; gap: 12px; }
+.right { display: flex; align-items: center; gap: 10px; }
 .clock { font-size: 12px; color: var(--txt); font-weight: 600; }
-.eyes { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
-.eyes i { width: 5px; height: 8px; border-radius: 3px; background: #fff; animation: blink 5s infinite; }
-.eyes.busy i { background: var(--accent); }
-@keyframes blink { 0%,94%,100% { transform: scaleY(1) } 97% { transform: scaleY(.1) } }
 .menu { position: absolute; right: 16px; top: 36px; z-index: 20; display: flex; flex-direction: column; gap: 2px;
   padding: 8px; min-width: 220px; background: #1d1d22; border: 1px solid var(--line); border-radius: 14px;
   box-shadow: 0 10px 30px rgba(0,0,0,.5); font-size: 12px; }
@@ -110,4 +111,5 @@ header.draggable:active { cursor: grabbing; }
 .meetbtn:hover { background: #7390ff; }
 .kbtn { font-family: var(--mono); font-size: 10.5px; color: var(--mute); padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line); }
 .kbtn:hover { color: #fff; border-color: rgba(255,255,255,.25); }
+.kbtn.on { background: var(--accent); border-color: transparent; color: #111; font-weight: 700; }
 </style>

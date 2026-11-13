@@ -45,7 +45,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 #island.ay-bottom { top: auto; bottom: 6px; --oy: bottom; }
 #island.collapsed { width: 230px; height: 36px; border-radius: 18px; }
 #island.collapsed.toasting { width: 340px; height: 40px; border-radius: 20px; }
-#island.expanded  { width: 760px; height: 300px; border-radius: 30px; }
+#island.expanded  { width: 760px; height: 316px; border-radius: 30px; }
 #island.alert { box-shadow: 0 0 0 2px var(--accent), 0 10px 40px rgba(0,0,0,.55); }
 
 .panel {
@@ -57,7 +57,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   background: radial-gradient(closest-side, hsla(var(--h) 90% 55% / calc(var(--glow) * .5)), transparent);
   pointer-events: none; }
 main { position: relative; flex: 1; min-height: 0; }
-.tab { position: absolute; inset: 12px 20px 14px; animation: fade .3s var(--ease); }
+.tab { position: absolute; inset: 14px 20px 16px; animation: fade .3s var(--ease); }
 @keyframes fade { from { opacity: 0; transform: translateY(4px) } }
 
 /* pílula: some quando a ilha abre; texto mais largo durante avisos */

@@ -23,6 +23,7 @@ export const island = reactive({
   pinned: false,
   hovering: false,
   tab: 'home' as TabId,
+  homeEdit: false,
   menuOpen: false,
   paletteOpen: false,
   toast: null as Toast | null,
