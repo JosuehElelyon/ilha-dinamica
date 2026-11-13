@@ -76,6 +76,8 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
   set_autostart: (a) => a.enabled,
   pick_path: () => null,
   relaunch_admin: () => false,
+  check_update: () => ({ available: true, version: '2.2.0', current: '2.1.0', notes: '' }),
+  install_update: () => undefined,
   reset_position: () => emit('anchor', { x: 'center', y: 'top' })
 }
 

@@ -3,7 +3,7 @@
 import { computed } from 'vue'
 import { api } from '../lib/api'
 import { DIAS, MESES, pad } from '../lib/format'
-import { island, live, now, stopwatch, focus, timer } from '../store/state'
+import { island, live, now, stopwatch, focus, timer, checkUpdate, installUpdate } from '../store/state'
 import { S, save } from '../store/settings'
 
 const emit = defineEmits<{ pin: [boolean] }>()
@@ -35,6 +35,9 @@ function center() { island.menuOpen = false; api.resetPosition() }
     <span class="mono">{{ date }}</span>
     <span class="eyes" :class="{ busy }"><i /><i /></span>
     <span class="right">
+      <button v-if="island.update.available" class="upd" :disabled="island.update.installing"
+              :title="`Instalar a versão ${island.update.available}`" @click.stop="installUpdate()">
+        {{ island.update.installing ? '⏳ Atualizando…' : `⬆ ${island.update.available}` }}</button>
       <span class="clock mono">{{ clock }}</span>
       <button class="icon-btn" title="Opções" @click.stop="island.menuOpen = !island.menuOpen">•••</button>
     </span>
@@ -44,6 +47,12 @@ function center() { island.menuOpen = false; api.resetPosition() }
       <label><input type="checkbox" :checked="island.pinned" @change="emit('pin', ($event.target as HTMLInputElement).checked)"> Manter aberta</label>
       <label><input type="checkbox" :checked="S.locked" @change="save('locked', ($event.target as HTMLInputElement).checked)"> Travar posição</label>
       <button @click="center">📍 Voltar ao centro do topo</button>
+      <div class="sep" />
+      <button :disabled="island.update.checking || island.update.installing" @click="checkUpdate(true)">
+        ⬆️ Verificar atualizações <span class="ver">v{{ island.version }}</span></button>
+      <span v-if="island.update.status" class="status">{{ island.update.status }}</span>
+      <label><input type="checkbox" :checked="S.autoUpdate" @change="save('autoUpdate', ($event.target as HTMLInputElement).checked)"> Atualizar automaticamente</label>
+      <div class="sep" />
       <span v-if="island.isAdmin" class="note">🛡️ Rodando como administrador</span>
       <button v-else @click="island.menuOpen = false; api.relaunchAdmin()">🛡️ Reiniciar como administrador</button>
       <button class="danger" @click="api.quit()">Sair</button>
@@ -68,4 +77,9 @@ header.draggable:active { cursor: grabbing; }
 .menu label, .menu button { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; text-align: left; cursor: pointer; }
 .menu label:hover, .menu button:hover { background: rgba(255,255,255,.06); }
 .note { padding: 6px 8px; color: #5be39a; }
+.sep { height: 1px; background: var(--line); margin: 2px 4px; }
+.ver { margin-left: auto; color: var(--mute); font-family: var(--mono); font-size: 10.5px; }
+.status { padding: 0 8px 4px 32px; color: var(--mute); font-size: 11px; }
+.upd { padding: 2px 9px; border-radius: 10px; background: var(--accent); color: #111; font-size: 11px; font-weight: 700; }
+.upd:disabled { opacity: .7; }
 </style>

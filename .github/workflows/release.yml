@@ -1,0 +1,46 @@
+# Compila a Ilha Dinâmica no Windows e publica o instalador + atualização automática
+# nas Releases do GitHub. Roda ao enviar uma tag vX.Y.Z (ex.: npm run release 2.1.1)
+# ou manualmente pela aba Actions.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        with:
+          tagName: v__VERSION__
+          releaseName: 'Ilha Dinâmica v__VERSION__'
+          releaseBody: |
+            Baixe e execute o **Ilha.Dinamica_…_x64-setup.exe** abaixo.
+            Se você já usa a Ilha Dinâmica 2.1 ou mais nova, ela se atualiza sozinha.
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true

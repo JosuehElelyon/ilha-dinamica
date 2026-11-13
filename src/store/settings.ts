@@ -34,6 +34,7 @@ export interface Settings {
   cleanSel: string[]
   procSort: 'c' | 'm'
   locked: boolean
+  autoUpdate: boolean
 }
 
 const DEFAULTS: Settings = {
@@ -48,7 +49,8 @@ const DEFAULTS: Settings = {
   actions: DEFAULT_ACTIONS,
   cleanSel: ['temp', 'browsers', 'apps', 'thumbs', 'crash', 'wintemp', 'update'],
   procSort: 'm',
-  locked: false
+  locked: false,
+  autoUpdate: true
 }
 
 export const S = reactive<Settings>(structuredClone(DEFAULTS))

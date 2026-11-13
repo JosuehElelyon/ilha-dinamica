@@ -30,8 +30,44 @@ export const island = reactive({
   protectedNames: new Set<string>(),
   selfName: '',
   ownPids: [] as number[],
-  anchor: { x: 'center', y: 'top' } as Anchor
+  anchor: { x: 'center', y: 'top' } as Anchor,
+  update: { checking: false, installing: false, available: '', status: '' }
 })
+
+/* ---------- atualização automática ---------- */
+export async function checkUpdate(manual = false) {
+  if (island.update.checking || island.update.installing) return
+  island.update.checking = true
+  island.update.status = 'Verificando…'
+  try {
+    const u = await api.checkUpdate()
+    island.update.available = u.available ? u.version : ''
+    island.update.status = u.available ? `Nova versão ${u.version} disponível` : 'Você está na versão mais recente'
+    if (u.available) {
+      if (!manual && autoUpdateEnabled()) return installUpdate()
+      showToast({ icon: '⬆️', text: `Atualização ${u.version} disponível`, ms: 5000 })
+    } else if (manual) showToast({ icon: '✅', text: 'Ilha Dinâmica atualizada', ms: 2500 })
+  } catch {
+    island.update.status = 'Não foi possível verificar agora'
+    if (manual) showToast({ icon: '⚠️', text: 'Não foi possível verificar atualizações', ms: 3000 })
+  } finally {
+    island.update.checking = false
+  }
+}
+export async function installUpdate() {
+  island.update.installing = true
+  island.update.status = `Instalando ${island.update.available}…`
+  showToast({ icon: '⬆️', text: `Atualizando para ${island.update.available}…`, ms: 15000 })
+  try {
+    await api.installUpdate() // o app reinicia sozinho ao terminar
+  } catch {
+    island.update.installing = false
+    island.update.status = 'Falha ao instalar — tente de novo'
+    showToast({ icon: '⚠️', text: 'Falha ao atualizar', alert: true, ms: 4000 })
+  }
+}
+let autoUpdateEnabled = () => true
+export function setAutoUpdateGetter(fn: () => boolean) { autoUpdateEnabled = fn }
 
 /** Relógio compartilhado (atualiza 4x por segundo) */
 export const now = ref(Date.now())

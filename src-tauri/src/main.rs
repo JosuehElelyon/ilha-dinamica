@@ -8,16 +8,20 @@ mod clean;
 mod clipboard;
 mod data;
 mod hover;
+mod logger;
 mod media;
 mod position;
 mod system;
 mod tray;
+mod update;
 mod util;
 
 use tauri::{Emitter, Manager};
-use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, ShortcutState};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 fn main() {
+    logger::install_panic_hook();
+    logger::log(format!("iniciando v{}", env!("CARGO_PKG_VERSION")));
     // Quando reiniciamos como administrador, damos tempo para a instância antiga fechar
     if std::env::args().any(|a| a == "--elevated-restart") {
         std::thread::sleep(std::time::Duration::from_millis(1500));
@@ -33,17 +37,8 @@ fn main() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .plugin(
-            ShortcutBuilder::new()
-                .with_shortcuts(["ctrl+alt+space"])
-                .expect("atalho inválido")
-                .with_handler(|app, _shortcut, event| {
-                    if event.state == ShortcutState::Pressed {
-                        let _ = app.emit("toggle", ());
-                    }
-                })
-                .build(),
-        )
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(data::DataState::default())
         .manage(hover::HoverState::default())
         .manage(clipboard::ClipState::default())
@@ -58,7 +53,18 @@ fn main() {
             let _ = win.set_ignore_cursor_events(true);
             let _ = win.show();
 
-            tray::create(&handle)?;
+            // o atalho pode estar ocupado por outro programa (ex.: a versão antiga em Electron):
+            // nesse caso a ilha abre normalmente, só sem o atalho
+            if let Err(e) = app.global_shortcut().on_shortcut("ctrl+alt+space", |app, _s, event| {
+                if event.state == ShortcutState::Pressed {
+                    let _ = app.emit("toggle", ());
+                }
+            }) {
+                logger::log(format!("atalho Ctrl+Alt+Espaço indisponível: {e}"));
+            }
+            if let Err(e) = tray::create(&handle) {
+                logger::log(format!("ícone da bandeja: {e}"));
+            }
             hover::start(handle.clone());
             clipboard::start(handle.clone());
             media::start(handle.clone());
@@ -107,8 +113,13 @@ fn main() {
             actions::notify,
             actions::relaunch_admin,
             actions::quit_app,
+            update::check_update,
+            update::install_update,
         ])
         .run(tauri::generate_context!())
-        .expect("erro ao iniciar a Ilha Dinâmica");
+        .unwrap_or_else(|e| {
+            logger::log(format!("erro ao iniciar: {e}"));
+            panic!("erro ao iniciar a Ilha Dinâmica: {e}");
+        });
 
 }

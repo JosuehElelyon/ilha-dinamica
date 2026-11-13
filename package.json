@@ -1,7 +1,7 @@
 {
   "name": "ilha-dinamica",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Dynamic Island para Windows — Tauri 2 (Rust) + Vue 3",
   "author": "Josueh",
   "license": "MIT",
@@ -11,7 +11,8 @@
     "build": "tauri build",
     "dev:web": "vite",
     "build:web": "vue-tsc --noEmit && vite build",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

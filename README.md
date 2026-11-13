@@ -20,9 +20,23 @@ Feita com **Tauri 2** — backend em **Rust**, interface em **Vue 3 + TypeScript
 - **••• → Personalizar**: cor, tamanho, opacidade, cidade do clima e avisos.
 - **Avisos na pílula**: volume, microfone, fones conectados, bateria, internet, música nova, timer, foco e lembretes.
 - **Arraste para mover**: segure a barra do topo da ilha aberta e solte onde quiser. A posição fica salva; perto do centro do topo ela encaixa sozinha (ímã). Embaixo ou nos cantos, ela abre para o lado certo. Duplo clique na barra, ou **••• → Voltar ao centro do topo**, volta para a posição padrão. **Travar posição** evita arrastar sem querer.
+- **Atualização automática** pelas Releases do GitHub (assinadas digitalmente).
 - Atalho **Ctrl + Alt + Espaço** abre/fecha a ilha. Ícone na bandeja com "Iniciar com o Windows".
 
-## Como compilar e instalar
+## Instalar (mais fácil)
+Baixe o instalador **`Ilha.Dinamica_…_x64-setup.exe`** em [Releases](https://github.com/JosuehElelyon/ilha-dinamica/releases/latest) e execute.
+A partir da versão 2.1 a ilha **se atualiza sozinha**: ela verifica ao abrir e a cada 6 horas (••• → *Verificar atualizações* / *Atualizar automaticamente*).
+
+## Publicar uma nova versão
+```powershell
+npm run release 2.1.1
+```
+Isso atualiza o número da versão, cria a tag e envia ao GitHub. O GitHub Actions compila no Windows, assina e publica a Release; as ilhas instaladas recebem a atualização.
+> Requer o segredo `TAURI_SIGNING_PRIVATE_KEY` no repositório (Settings → Secrets and variables → Actions).
+
+Se a ilha não abrir, veja o log em `%LOCALAPPDATA%\com.josueh.ilhadinamica\ilha.log`.
+
+## Como compilar e instalar (manual)
 
 ### Pré-requisitos (uma vez só)
 1. **Node.js LTS** — https://nodejs.org
@@ -62,6 +76,9 @@ src-tauri/           backend (Rust)
   src/system.rs      CPU, RAM, bateria, brilho e processos
   src/clean.rs       limpeza, Lixeira, memória e DNS
   src/actions.rs     ações, seletor de arquivos, notificações, admin
+  src/update.rs      atualização automática
+  src/logger.rs      log de erros (ilha.log)
+.github/workflows/ compilação e publicação automática no Windows
 ```
 
 ## Licença

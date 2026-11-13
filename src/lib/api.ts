@@ -65,6 +65,8 @@ export const api = {
   notify: (title: string, body: string) => invoke<void>('notify', { title, body }),
   relaunchAdmin: () => invoke<boolean>('relaunch_admin'),
   quit: () => invoke<void>('quit_app'),
+  checkUpdate: () => invoke<{ available: boolean; version: string; current: string; notes: string }>('check_update'),
+  installUpdate: () => invoke<void>('install_update'),
 
   // eventos vindos do Rust
   onHover: (cb: (inside: boolean) => void) => on('hover', cb),
