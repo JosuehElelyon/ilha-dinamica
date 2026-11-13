@@ -1,6 +1,6 @@
 [package]
 name = "ilha-dinamica"
-version = "2.10.1"
+version = "2.10.2"
 description = "Dynamic Island para Windows"
 authors = ["Josueh"]
 license = "MIT"
