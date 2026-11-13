@@ -4,6 +4,7 @@
 
 mod actions;
 mod audio;
+mod calendar;
 mod clean;
 mod clipboard;
 mod data;
