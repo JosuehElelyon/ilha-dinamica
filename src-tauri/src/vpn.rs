@@ -159,6 +159,8 @@ const CISCO_UI: &[&str] = &[
 const OVPN_CONNECT: &[&str] = &["%ProgramFiles%\\OpenVPN Connect\\OpenVPNConnect.exe"];
 const FORTI: &[&str] = &["%ProgramFiles%\\Fortinet\\FortiClient\\FortiClient.exe"];
 const GLOBALPROTECT: &[&str] = &["%ProgramFiles%\\Palo Alto Networks\\GlobalProtect\\PanGPA.exe"];
+/// CLI oficial das versões novas do GlobalProtect (instaladas por MSI)
+const GP_CLI: &[&str] = &["%ProgramFiles%\\Palo Alto Networks\\GlobalProtect\\pangpcli.exe"];
 
 /// Resultado: "ok" (comando enviado) ou "app" (abrimos o programa da VPN para você entrar)
 #[derive(Serialize)]
@@ -308,7 +310,11 @@ pub fn vpn_connect(profile: VpnProfile) -> VpnResult {
             _ => open_app(CISCO_UI, "Cisco Secure Client"),
         },
         "forti" => open_app(FORTI, "FortiClient"),
-        "globalprotect" => open_app(GLOBALPROTECT, "GlobalProtect"),
+        "globalprotect" => match first_existing(GP_CLI) {
+            Some(cli) if !name.is_empty() => done(run(&cli, &["-start", "-portal", name])),
+            Some(cli) => done(run(&cli, &["-start"])),
+            None => open_app(GLOBALPROTECT, "GlobalProtect"),
+        },
         "custom" if !profile.connect.trim().is_empty() => done(shell(profile.connect.trim())),
         _ => VpnResult { ok: false, mode: "cmd", msg: "Configure a VPN deste órgão primeiro".into() },
     }
@@ -350,7 +356,10 @@ pub fn vpn_disconnect(profile: VpnProfile) -> VpnResult {
             None => open_app(CISCO_UI, "Cisco Secure Client"),
         },
         "forti" => open_app(FORTI, "FortiClient"),
-        "globalprotect" => open_app(GLOBALPROTECT, "GlobalProtect"),
+        "globalprotect" => match first_existing(GP_CLI) {
+            Some(cli) => done(run(&cli, &["-disconnect"])),
+            None => open_app(GLOBALPROTECT, "GlobalProtect"),
+        },
         "custom" if !profile.disconnect.trim().is_empty() => done(shell(profile.disconnect.trim())),
         _ => VpnResult { ok: false, mode: "cmd", msg: "Sem comando para desligar".into() },
     }

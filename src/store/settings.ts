@@ -66,7 +66,7 @@ const DEFAULTS: Settings = {
   snippets: DEFAULT_SNIPPETS,
   orgs: [
     newOrg('enap', 'ENAP', '#2fb8ff', { type: 'openvpnconnect', name: 'vpnclient.enap.gov.br', adapter: 'OpenVPN' }),
-    newOrg('fnde', 'FNDE', '#34d058'),
+    newOrg('fnde', 'FNDE', '#34d058', { type: 'globalprotect', name: 'vpn01.fnde.gov.br', adapter: 'PANGP' }),
     newOrg('basa', 'BASA', '#ffd23f', { type: 'cisco', name: 'vpn.basa.com.br/parceiros', adapter: 'Cisco' })
   ],
   vpnExclusive: false
@@ -98,6 +98,9 @@ export function loadSettings(saved: Record<string, unknown>) {
   if (!Array.isArray(S.cleanSel)) S.cleanSel = DEFAULTS.cleanSel
   if (!Array.isArray(S.snippets)) S.snippets = DEFAULT_SNIPPETS
   if (!Array.isArray(S.orgs)) S.orgs = structuredClone(DEFAULTS.orgs)
+  // FNDE salva antes de sabermos a VPN: aplica o GlobalProtect padrão se ainda estiver vazia
+  const fnde = S.orgs.find(o => o.id === 'fnde')
+  if (fnde && fnde.vpn.type === 'none' && !fnde.vpn.name) fnde.vpn = { ...fnde.vpn, type: 'globalprotect', name: 'vpn01.fnde.gov.br', adapter: 'PANGP' }
 }
 
 export const activeModules = () => S.modules.filter(m => !S.modulesOff.includes(m))

@@ -10,7 +10,7 @@ export const VPN_TYPES: { id: Org['vpn']['type']; label: string; nameLabel: stri
   { id: 'openvpnconnect', label: 'OpenVPN Connect', nameLabel: 'Perfil (nome ou servidor)', namePh: 'vpnclient.orgao.gov.br', adapter: 'OpenVPN' },
   { id: 'cisco', label: 'Cisco Secure Client / AnyConnect', nameLabel: 'Servidor', namePh: 'vpn.orgao.gov.br/grupo', adapter: 'Cisco' },
   { id: 'forti', label: 'FortiClient', nameLabel: 'Servidor (opcional)', namePh: 'vpn.orgao.gov.br', adapter: 'Fortinet' },
-  { id: 'globalprotect', label: 'GlobalProtect', nameLabel: 'Portal (opcional)', namePh: 'vpn.orgao.gov.br', adapter: 'PANGP' },
+  { id: 'globalprotect', label: 'GlobalProtect (Palo Alto)', nameLabel: 'Portal', namePh: 'vpn.orgao.gov.br', adapter: 'PANGP' },
   { id: 'windows', label: 'VPN do Windows', nameLabel: 'Nome da conexão', namePh: 'Como aparece em Configurações → VPN', adapter: '' },
   { id: 'openvpn', label: 'OpenVPN GUI (comunidade)', nameLabel: 'Arquivo de config', namePh: 'orgao (sem .ovpn)', adapter: 'OpenVPN' },
   { id: 'wireguard', label: 'WireGuard', nameLabel: 'Túnel (.conf)', namePh: 'C:\\VPN\\orgao.conf', adapter: '' },

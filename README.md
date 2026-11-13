@@ -7,7 +7,7 @@ Feita com **Tauri 2** — backend em **Rust**, interface em **Vue 3 + TypeScript
 ## Recursos
 - **Início**: cronômetro, música tocando agora com a **capa do álbum** e controles, e Pomodoro (25 + 5 min).
 - **Trabalho**: um cartão por órgão/cliente (ENAP, FNDE, BASA… dá para adicionar e remover) com:
-  - **VPN com liga/desliga** — OpenVPN Connect, Cisco Secure Client/AnyConnect (conecta sozinho com a senha salva no Gerenciador de Credenciais), FortiClient, GlobalProtect, VPN do Windows, OpenVPN GUI, WireGuard ou comandos próprios. O status vem da placa de rede, então funciona com qualquer cliente; opção "Uma VPN por vez".
+  - **VPN com liga/desliga** — OpenVPN Connect, Cisco Secure Client/AnyConnect (conecta sozinho com a senha salva no Gerenciador de Credenciais), FortiClient, GlobalProtect (liga/desliga pelo `pangpcli` nas versões novas), VPN do Windows, OpenVPN GUI, WireGuard ou comandos próprios. O status vem da placa de rede, então funciona com qualquer cliente; opção "Uma VPN por vez".
   - **Merge Requests do GitLab** — para revisar e os seus, com status do pipeline e conflitos. Avisa quando pedem sua revisão ou um pipeline falha. O token fica no Gerenciador de Credenciais do Windows.
   - Etiquetas na pílula mostram quais VPNs estão ligadas.
 - **Ações**: seus atalhos para sites, programas, pastas e comandos (`calc`, `ms-settings:`…). Dá para criar, editar e remover.
