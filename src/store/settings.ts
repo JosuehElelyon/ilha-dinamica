@@ -7,19 +7,18 @@ export type ModuleId =
   | 'home' | 'work' | 'games' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
   | 'weather' | 'audio' | 'sys' | 'clean' | 'procs'
 
-export type HomeCardId = 'stopwatch' | 'media' | 'focus' | 'photos' | 'timer' | 'weather' | 'meeting'
+export type HomeCardId = 'stopwatch' | 'media' | 'focus' | 'timer' | 'weather' | 'meeting'
 
 export const HOME_CARDS: Record<HomeCardId, { label: string; icon: string }> = {
   stopwatch: { label: 'Cronômetro', icon: '⏱️' },
   media: { label: 'Música', icon: '🎵' },
   focus: { label: 'Foco', icon: '🎯' },
-  photos: { label: 'Google Fotos', icon: '🖼️' },
   timer: { label: 'Timer', icon: '⏳' },
   weather: { label: 'Clima', icon: '⛅' },
   meeting: { label: 'Reunião', icon: '📹' }
 }
 
-export const DEFAULT_HOME_CARDS: HomeCardId[] = ['stopwatch', 'media', 'focus', 'photos']
+export const DEFAULT_HOME_CARDS: HomeCardId[] = ['stopwatch', 'media', 'focus']
 
 export const MODULES: Record<ModuleId, string> = {
   home: 'INÍCIO', work: 'TRABALHO', games: 'JOGOS', actions: 'AÇÕES', tools: 'FERRAMENTAS', snippets: 'SNIPPETS', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',

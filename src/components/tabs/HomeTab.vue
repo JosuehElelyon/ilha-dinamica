@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Início: cards personalizáveis (mover, remover, adicionar), cronômetro com meta/som, mídia, foco ajustável e Google Fotos
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+// Início: cards personalizáveis (mover, remover, adicionar), cronômetro com meta/som, mídia e foco ajustável
+import { computed, ref } from 'vue'
 import { api } from '../../lib/api'
 import { fmt, ymd } from '../../lib/format'
 import { DEFAULT_HOME_CARDS, HOME_CARDS, S, save, type HomeCardId } from '../../store/settings'
@@ -18,7 +18,7 @@ const availableToAdd = computed(() =>
   (Object.keys(HOME_CARDS) as HomeCardId[]).filter(id => !S.homeCards.includes(id))
 )
 const gridStyle = computed(() => ({
-  gridTemplateColumns: S.homeCards.map(id => (id === 'media' ? '1.75fr' : id === 'photos' ? '1.15fr' : '1fr')).join(' ')
+  gridTemplateColumns: S.homeCards.map(id => (id === 'media' ? '1.85fr' : '1fr')).join(' ')
 }))
 
 function moveCard(idx: number, delta: number) {
@@ -86,107 +86,6 @@ const nextMeetToday = computed(() => {
   const today = ymd(new Date(now.value))
   return meetings.value.find(m => m.date === today && m.endMs > now.value) || null
 })
-
-/* ---------------- Google Fotos ---------------- */
-const gp = reactive({
-  connected: false,
-  hasClient: false,
-  list: [] as string[],
-  idx: 0,
-  busy: false,
-  cfgOpen: false,
-  editClient: false,
-  hover: false,
-  clientId: '',
-  clientSecret: ''
-})
-
-async function loadGPhotos() {
-  try {
-    const st = await api.gphotosStatus()
-    gp.connected = st.connected
-    gp.hasClient = st.has_client
-    if (st.count > 0) gp.list = await api.gphotosList()
-    else gp.list = []
-    if (gp.idx >= gp.list.length) gp.idx = 0
-  } catch { /* ignora fora do Tauri */ }
-}
-
-async function connectGoogle() {
-  gp.busy = true
-  try {
-    if (gp.clientId.trim()) {
-      gp.hasClient = await api.gphotosSetClient(gp.clientId, gp.clientSecret)
-      gp.editClient = false
-    }
-    showToast({ icon: '🔑', text: 'Conclua o login do Google no navegador…', ms: 6000 })
-    await api.gphotosConnect()
-    gp.connected = true
-    gp.cfgOpen = false
-    showToast({ icon: '✅', text: 'Google conectado! Escolha suas fotos.', ms: 3000 })
-    await pickPhotos()
-  } catch (e) {
-    showToast({ icon: '⚠️', text: String(e), alert: true, ms: 5000 })
-  } finally {
-    gp.busy = false
-  }
-}
-
-async function pickPhotos() {
-  gp.busy = true
-  try {
-    showToast({ icon: '🖼️', text: 'Selecione as fotos no navegador…', ms: 6000 })
-    const imgs = await api.gphotosPick()
-    gp.list = imgs
-    gp.idx = 0
-    gp.cfgOpen = false
-    showToast(imgs.length
-      ? { icon: '🖼️', text: `${imgs.length} fotos carregadas na Home`, ms: 2500 }
-      : { icon: 'ℹ️', text: 'Nenhuma foto selecionada', ms: 2500 })
-  } catch (e) {
-    showToast({ icon: '⚠️', text: String(e), alert: true, ms: 5000 })
-  } finally {
-    gp.busy = false
-  }
-}
-
-async function pickFolder() {
-  gp.busy = true
-  try {
-    const imgs = await api.gphotosPickFolder()
-    if (imgs.length) {
-      gp.list = imgs
-      gp.idx = 0
-      gp.cfgOpen = false
-      showToast({ icon: '🖼️', text: `${imgs.length} fotos carregadas da pasta`, ms: 2500 })
-    }
-  } finally {
-    gp.busy = false
-  }
-}
-
-async function disconnectGoogle() {
-  await api.gphotosDisconnect()
-  gp.connected = false
-  gp.list = []
-  gp.idx = 0
-  gp.cfgOpen = false
-  showToast({ icon: '🔓', text: 'Conta Google desvinculada', ms: 2200 })
-}
-
-function stepPhoto(delta: number) {
-  if (!gp.list.length) return
-  gp.idx = (gp.idx + delta + gp.list.length) % gp.list.length
-}
-
-let slideTimer: number | undefined
-onMounted(() => {
-  loadGPhotos()
-  slideTimer = window.setInterval(() => {
-    if (!gp.hover && !gp.cfgOpen && gp.list.length > 1) stepPhoto(1)
-  }, 8000)
-})
-onUnmounted(() => clearInterval(slideTimer))
 </script>
 
 <template>
@@ -208,7 +107,7 @@ onUnmounted(() => clearInterval(slideTimer))
           </div>
           <div class="row">
             <span class="label mono">CRONÔMETRO</span>
-            <button class="chip" title="Definir meta com alerta sonoro" @click.stop="cycleGoal">
+            <button class="pill-chip" title="Definir meta com alerta sonoro" @click.stop="cycleGoal">
               {{ stopwatch.goalSec ? `🎯 ${stopwatch.goalSec / 60}m` : '🎯 meta' }}
             </button>
           </div>
@@ -233,9 +132,27 @@ onUnmounted(() => clearInterval(slideTimer))
             <div class="artist">{{ has ? (live.media.artist || live.media.app) : 'Abra o Spotify, YouTube…' }}</div>
           </div>
           <div class="ctrls">
-            <button class="ctl" title="Anterior" @click="api.mediaCmd('prev')">⏮</button>
-            <button class="ctl play" title="Tocar/pausar" @click="api.mediaCmd('toggle')">{{ playing ? '❚❚' : '▶' }}</button>
-            <button class="ctl" title="Próxima" @click="api.mediaCmd('next')">⏭</button>
+            <button class="ctl" title="Anterior" @click="api.mediaCmd('prev')">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+                <rect x="4.5" y="5.5" width="2.4" height="13" rx="1.2" />
+                <path d="M18.2 6.4a1.1 1.1 0 0 0-1.7-.9l-8.2 5.6a1.1 1.1 0 0 0 0 1.8l8.2 5.6a1.1 1.1 0 0 0 1.7-.9V6.4z" />
+              </svg>
+            </button>
+            <button class="ctl play" title="Tocar/pausar" @click="api.mediaCmd('toggle')">
+              <svg v-if="playing" viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+                <rect x="6.5" y="5.5" width="3.8" height="13" rx="1.4" />
+                <rect x="13.7" y="5.5" width="3.8" height="13" rx="1.4" />
+              </svg>
+              <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-left:1.5px">
+                <path d="M7.5 5.6a1.2 1.2 0 0 1 1.8-1l10.2 6.4a1.2 1.2 0 0 1 0 2l-10.2 6.4a1.2 1.2 0 0 1-1.8-1V5.6z" />
+              </svg>
+            </button>
+            <button class="ctl" title="Próxima" @click="api.mediaCmd('next')">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+                <path d="M5.8 6.4a1.1 1.1 0 0 1 1.7-.9l8.2 5.6a1.1 1.1 0 0 1 0 1.8l-8.2 5.6a1.1 1.1 0 0 1-1.7-.9V6.4z" />
+                <rect x="17.1" y="5.5" width="2.4" height="13" rx="1.2" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -249,74 +166,36 @@ onUnmounted(() => clearInterval(slideTimer))
           </div>
           <div class="row">
             <span class="label mono">{{ focus.mode === 'focus' ? 'FOCO' : 'PAUSA' }}</span>
-            <div v-if="!focus.running && focus.mode === 'focus'" class="fadj" @click.stop>
-              <button title="Diminuir 5 min" @click="adjustFocus(-5)">−</button>
-              <button title="Aumentar 5 min" @click="adjustFocus(5)">+</button>
+            <div v-if="!focus.running && focus.mode === 'focus'" class="stepper" @click.stop>
+              <button class="step-btn" title="Diminuir 5 min" @click="adjustFocus(-5)">
+                <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M3.5 8h9" />
+                </svg>
+              </button>
+              <span class="step-val mono">{{ S.focusMinutes }}m</span>
+              <button class="step-btn" title="Aumentar 5 min" @click="adjustFocus(5)">
+                <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M8 3.5v9M3.5 8h9" />
+                </svg>
+              </button>
             </div>
           </div>
           <div class="big mono">{{ fmt(focusLeft()) }}</div>
-          <div v-if="!focus.running && focus.mode === 'focus'" class="fpresets" @click.stop>
+          <div v-if="!focus.running && focus.mode === 'focus'" class="segbar" @click.stop>
             <button v-for="m in [15, 25, 45, 60]" :key="m" :class="{ on: S.focusMinutes === m }" @click="setFocusMinutes(m)">{{ m }}m</button>
           </div>
           <div class="row">
             <span class="sub">{{ focus.running ? (focus.mode === 'focus' ? 'Focando' : 'Descansando') : 'Pronto' }}</span>
-            <button class="round" title="Iniciar/pausar" @click.stop="focusToggle">{{ focus.running ? '❚❚' : '▶' }}</button>
-          </div>
-        </div>
-
-        <!-- ================= GOOGLE FOTOS ================= -->
-        <div v-else-if="cid === 'photos'" class="card photos" :class="{ editing: editMode }"
-             @mouseenter="gp.hover = true" @mouseleave="gp.hover = false">
-          <div v-if="editMode" class="econtrols" @click.stop>
-            <button :disabled="idx === 0" title="Mover para esquerda" @click="moveCard(idx, -1)">◀</button>
-            <button :disabled="idx === S.homeCards.length - 1" title="Mover para direita" @click="moveCard(idx, 1)">▶</button>
-            <button class="del" title="Remover card" @click="removeCard(cid)">✕</button>
-          </div>
-          <template v-if="gp.list.length && !gp.cfgOpen">
-            <img class="pframe" :src="gp.list[gp.idx]" alt="Google Fotos">
-            <div class="pgrad" />
-            <span class="pcount mono">{{ gp.idx + 1 }}/{{ gp.list.length }}</span>
-            <div class="pctrls">
-              <button class="pbtn" title="Anterior" @click.stop="stepPhoto(-1)">◀</button>
-              <button class="pbtn" title="Próxima" @click.stop="stepPhoto(1)">▶</button>
-              <button class="pbtn" :disabled="gp.busy" title="Escolher fotos no Google Fotos" @click.stop="pickPhotos">🖼️</button>
-              <button class="pbtn" title="Configurar conta Google" @click.stop="gp.cfgOpen = true">⚙</button>
-            </div>
-          </template>
-          <template v-else>
-            <div class="phead">
-              <span class="label mono">GOOGLE FOTOS</span>
-              <button v-if="gp.cfgOpen && gp.list.length" class="pbtn" title="Voltar" @click="gp.cfgOpen = false">✕</button>
-            </div>
-        <template v-if="!gp.connected || gp.editClient">
-          <div class="psetup">
-            <template v-if="!gp.hasClient || gp.editClient">
-              <input v-model="gp.clientId" class="pin" placeholder="Client ID OAuth (opcional se usar pasta)">
-              <input v-model="gp.clientSecret" type="password" class="pin" placeholder="Client Secret">
-            </template>
-            <span v-else class="psub">Conecte sua conta Google ou escolha uma pasta.</span>
-            <button class="paction" :disabled="gp.busy || ((!gp.hasClient || gp.editClient) && !gp.clientId.trim())" @click="connectGoogle">
-              {{ gp.busy ? 'Aguardando…' : 'Conectar Google' }}
+            <button class="round" title="Iniciar/pausar" @click.stop="focusToggle">
+              <svg v-if="focus.running" viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                <rect x="6.5" y="5.5" width="3.8" height="13" rx="1.4" />
+                <rect x="13.7" y="5.5" width="3.8" height="13" rx="1.4" />
+              </svg>
+              <svg v-else viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="margin-left:1.5px">
+                <path d="M7.5 5.6a1.2 1.2 0 0 1 1.8-1l10.2 6.4a1.2 1.2 0 0 1 0 2l-10.2 6.4a1.2 1.2 0 0 1-1.8-1V5.6z" />
+              </svg>
             </button>
-            <div class="prow">
-              <a class="plink" @click="pickFolder">📁 Pasta do PC</a>
-              <a v-if="gp.hasClient && !gp.editClient" class="plink" @click="gp.editClient = true">Client ID</a>
-              <a v-else class="plink" @click="api.runAction('https://console.cloud.google.com/apis/credentials')">Cloud Console ↗</a>
-            </div>
           </div>
-        </template>
-        <template v-else>
-          <div class="psetup">
-            <span class="psub">{{ gp.list.length ? `${gp.list.length} fotos salvas` : 'Conta vinculada! Escolha suas fotos:' }}</span>
-            <button class="paction" :disabled="gp.busy" @click="pickPhotos">{{ gp.busy ? 'Abrindo…' : 'Escolher fotos' }}</button>
-            <div class="prow">
-              <a class="plink" @click="pickFolder">📁 Pasta</a>
-              <a class="plink" @click="gp.editClient = true">Client ID</a>
-              <a class="plink danger" @click="disconnectGoogle">Desvincular</a>
-            </div>
-          </div>
-        </template>
-          </template>
         </div>
 
         <!-- ================= TIMER RÁPIDO ================= -->
@@ -328,12 +207,20 @@ onUnmounted(() => clearInterval(slideTimer))
           </div>
           <span class="label mono">TIMER</span>
           <div class="big mono">{{ fmt(timerLeft()) }}</div>
-          <div v-if="!timer.running" class="fpresets" @click.stop>
+          <div v-if="!timer.running" class="segbar" @click.stop>
             <button v-for="m in [1, 5, 10, 15]" :key="m" :class="{ on: timer.total === m * 60 }" @click="timerPreset(m)">{{ m }}m</button>
           </div>
           <div class="row">
             <span class="sub">{{ timer.running ? 'Contando' : 'Parado' }}</span>
-            <button class="round" title="Iniciar/pausar" @click.stop="timerToggle">{{ timer.running ? '❚❚' : '▶' }}</button>
+            <button class="round" title="Iniciar/pausar" @click.stop="timerToggle">
+              <svg v-if="timer.running" viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                <rect x="6.5" y="5.5" width="3.8" height="13" rx="1.4" />
+                <rect x="13.7" y="5.5" width="3.8" height="13" rx="1.4" />
+              </svg>
+              <svg v-else viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="margin-left:1.5px">
+                <path d="M7.5 5.6a1.2 1.2 0 0 1 1.8-1l10.2 6.4a1.2 1.2 0 0 1 0 2l-10.2 6.4a1.2 1.2 0 0 1-1.8-1V5.6z" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -360,11 +247,11 @@ onUnmounted(() => clearInterval(slideTimer))
           <template v-if="nextMeetToday">
             <div class="mhour mono">{{ nextMeetToday.startTime }}</div>
             <div class="msub">{{ nextMeetToday.summary }}</div>
-            <button v-if="nextMeetToday.joinUrl" class="paction" style="margin-top:auto" @click="api.runAction(nextMeetToday.joinUrl)">Entrar ↗</button>
+            <button v-if="nextMeetToday.joinUrl" class="meet-btn" @click="api.runAction(nextMeetToday.joinUrl)">Entrar ↗</button>
           </template>
           <template v-else>
             <div class="msub" style="margin-top:auto">Sem reuniões hoje</div>
-            <button class="chip" style="align-self:flex-start;margin-top:6px" @click="island.tab = 'cal'">Abrir Agenda</button>
+            <button class="pill-chip" style="align-self:flex-start;margin-top:6px" @click="island.tab = 'cal'">Abrir Agenda</button>
           </template>
         </div>
       </template>
@@ -385,53 +272,91 @@ onUnmounted(() => clearInterval(slideTimer))
 <style scoped>
 .home-wrap { position: relative; display: flex; flex-direction: column; gap: 6px; height: 100%; }
 .edit-toggle {
-  position: absolute; top: -6px; right: 2px; z-index: 15; padding: 2px 7px; border-radius: 9px;
-  background: rgba(255,255,255,.08); color: var(--mute); font-size: 10.5px; font-weight: 600;
+  position: absolute; top: -6px; right: 2px; z-index: 15; padding: 2px 8px; border-radius: 999px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); color: var(--mute); font-size: 10.5px; font-weight: 600;
 }
-.edit-toggle:hover, .edit-toggle.active { background: var(--accent); color: #111; }
+.edit-toggle:hover, .edit-toggle.active { background: var(--accent); border-color: transparent; color: #111; }
 
-.grid { flex: 1; min-height: 0; display: grid; gap: 8px; }
-.card { position: relative; border-radius: 20px; padding: 14px 16px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
-.card.editing { box-shadow: inset 0 0 0 1px rgba(255,255,255,.28); }
+.grid { flex: 1; min-height: 0; display: grid; gap: 9px; }
+.card {
+  position: relative; border-radius: 22px; padding: 14px 16px; overflow: hidden;
+  display: flex; flex-direction: column; min-width: 0;
+  border: 1px solid rgba(255,255,255,.11);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 8px 20px rgba(0,0,0,.22);
+}
+.card.editing { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.35); }
 .econtrols {
   position: relative; z-index: 12; display: flex; gap: 4px; justify-content: flex-end; margin-bottom: 4px;
 }
 .econtrols button {
-  width: 20px; height: 20px; border-radius: 6px; background: rgba(0,0,0,.55); color: #fff; font-size: 10px;
-  display: grid; place-items: center;
+  width: 20px; height: 20px; border-radius: 7px; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.12);
+  color: #fff; font-size: 10px; display: grid; place-items: center;
 }
 .econtrols button:disabled { opacity: .3; }
 .econtrols button.del { color: #ff8a7e; }
 
 .addbar {
   display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; overflow-x: auto;
-  padding: 4px 8px; border-radius: 12px; background: rgba(255,255,255,.05);
+  padding: 5px 9px; border-radius: 14px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
 }
-.addchip { padding: 3px 8px; border-radius: 8px; background: rgba(255,255,255,.09); font-size: 11px; white-space: nowrap; }
-.addchip:hover { background: rgba(255,255,255,.18); }
+.addchip { padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.1); font-size: 11px; white-space: nowrap; }
+.addchip:hover { background: rgba(255,255,255,.2); }
 .addchip.reset { margin-left: auto; color: var(--mute); }
 .tiny { font-size: 10.5px; white-space: nowrap; }
 
-.label { font-size: 10.5px; opacity: .85; }
-.big { font-size: 32px; font-weight: 600; margin-top: auto; letter-spacing: 0; }
-.sub { font-size: 12px; opacity: .85; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
-.chip { padding: 1px 6px; border-radius: 7px; background: rgba(0,0,0,.25); color: #fff; font-size: 10px; }
-.chip:hover { background: rgba(0,0,0,.45); }
+.label { font-size: 10.5px; opacity: .82; letter-spacing: .04em; }
+.big { font-size: 32px; font-weight: 600; margin-top: auto; letter-spacing: -.01em; line-height: 1.05; }
+.sub { font-size: 12px; opacity: .82; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.pill-chip {
+  padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.24);
+  border: 1px solid rgba(255,255,255,.12); color: #fff; font-size: 10px;
+}
+.pill-chip:hover { background: rgba(0,0,0,.42); }
 
-.sw { background: linear-gradient(160deg, color-mix(in srgb, var(--accent), black 62%), var(--accent)); cursor: pointer; }
-.sw.running { box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
-.focus { background: linear-gradient(160deg, #24205a, #4a3fc0 80%); }
-.focus.break { background: linear-gradient(160deg, #0f3d2e, #1f9d6b 80%); }
-.fadj { display: flex; gap: 3px; }
-.fadj button { width: 20px; height: 20px; border-radius: 6px; background: rgba(255,255,255,.15); font-size: 13px; line-height: 1; }
-.fadj button:hover { background: rgba(255,255,255,.28); }
-.fpresets { display: flex; gap: 3px; margin: 2px 0 4px; }
-.fpresets button { padding: 1px 5px; border-radius: 6px; background: rgba(255,255,255,.1); font-size: 10px; color: #ddd; }
-.fpresets button.on { background: #fff; color: #111; font-weight: 700; }
+.sw { background: linear-gradient(155deg, color-mix(in srgb, var(--accent), black 58%), var(--accent)); cursor: pointer; }
+.sw.running { box-shadow: inset 0 0 0 1px rgba(255,255,255,.32), 0 8px 20px rgba(0,0,0,.22); }
+.focus { background: linear-gradient(155deg, #211d54, #493ec2 85%); }
+.focus.break { background: linear-gradient(155deg, #0d3a2c, #1d9a68 85%); }
 
-.round { width: 28px; height: 28px; border-radius: 50%; background: #fff; color: #111; font-size: 11px; display: grid; place-items: center; }
-.round:hover { transform: scale(1.06); }
+/* Stepper (− | 25m | +) integrado ao card como cápsula única */
+.stepper {
+  display: inline-flex; align-items: center;
+  background: rgba(0,0,0,.24); border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px; overflow: hidden; height: 22px;
+}
+.step-btn {
+  width: 22px; height: 22px; display: grid; place-items: center; color: rgba(255,255,255,.9);
+  transition: background .15s;
+}
+.step-btn:hover { background: rgba(255,255,255,.16); color: #fff; }
+.step-val {
+  padding: 0 5px; font-size: 10px; color: rgba(255,255,255,.88);
+  border-left: 1px solid rgba(255,255,255,.1); border-right: 1px solid rgba(255,255,255,.1);
+  line-height: 22px;
+}
+
+/* Barra segmentada unificada para presets de tempo */
+.segbar {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px;
+  padding: 2px; margin: 4px 0 5px; border-radius: 10px;
+  background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.09);
+}
+.segbar button {
+  padding: 2px 0; border-radius: 8px; font-size: 10px; color: rgba(255,255,255,.75); font-weight: 500;
+  transition: background .15s, color .15s;
+}
+.segbar button:hover { color: #fff; background: rgba(255,255,255,.08); }
+.segbar button.on { background: rgba(255,255,255,.94); color: #111; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+
+.round {
+  width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,.95); color: #111;
+  display: grid; place-items: center; box-shadow: 0 3px 10px rgba(0,0,0,.25);
+  transition: transform .15s;
+}
+.round:hover { transform: scale(1.07); }
+
+/* Card de mídia */
 .media { background: linear-gradient(180deg, hsl(var(--h) 55% 20%), hsl(var(--h) 70% 38%)); justify-content: flex-end; }
 .sun { position: absolute; right: 26%; top: -30px; width: 110px; height: 110px; border-radius: 50%;
   background: hsl(calc(var(--h) + 10) 90% 82%); opacity: .85; }
@@ -439,38 +364,34 @@ onUnmounted(() => clearInterval(slideTimer))
   clip-path: polygon(0 60%, 18% 30%, 35% 55%, 55% 20%, 75% 50%, 100% 25%, 100% 100%, 0 100%); }
 .cover-bg { position: absolute; inset: -30px; width: calc(100% + 60px); height: calc(100% + 60px);
   object-fit: cover; filter: blur(26px) saturate(1.4) brightness(.55); }
-.cover { position: absolute; top: 14px; left: 16px; width: 70px; height: 70px; border-radius: 12px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
-.info { position: relative; max-width: 66%; }
-.title { font-size: 24px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cover { position: absolute; top: 14px; left: 16px; width: 70px; height: 70px; border-radius: 14px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+.info { position: relative; max-width: 62%; }
+.title { font-size: 23px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .has-cover .title { font-size: 19px; }
 .artist { font-size: 12.5px; opacity: .85; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ctrls { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 3px; }
-.ctl { width: 28px; height: 28px; border-radius: 50%; font-size: 11px; color: #fff; opacity: .85; }
-.ctl:hover { background: rgba(255,255,255,.15); opacity: 1; }
-.ctl.play { width: 36px; height: 36px; background: #fff; color: #111; font-size: 13px; opacity: 1; }
 
-.photos { background: linear-gradient(160deg, #1b1c24, #282b3a); padding: 12px 13px; }
-.pframe { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.pgrad { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35), transparent 35%, rgba(0,0,0,.65)); pointer-events: none; }
-.pcount { position: relative; align-self: flex-start; font-size: 10px; padding: 2px 6px; border-radius: 8px; background: rgba(0,0,0,.45); }
-.pctrls { position: relative; margin-top: auto; display: flex; justify-content: space-between; gap: 4px; opacity: 0; transition: opacity .2s; }
-.photos:hover .pctrls { opacity: 1; }
-.pbtn { width: 24px; height: 24px; border-radius: 8px; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; display: grid; place-items: center; }
-.pbtn:hover { background: rgba(0,0,0,.85); }
-.phead { display: flex; align-items: center; justify-content: space-between; }
-.psetup { margin-top: auto; display: flex; flex-direction: column; gap: 5px; }
-.psub { font-size: 11px; color: var(--mute); line-height: 1.3; }
-.pin { width: 100%; padding: 4px 7px; border-radius: 8px; border: 1px solid var(--line); background: rgba(0,0,0,.3); color: #fff; font-size: 11px; outline: none; }
-.pin:focus { border-color: var(--accent); }
-.paction { padding: 6px 10px; border-radius: 10px; background: var(--accent); color: #111; font-size: 11.5px; font-weight: 700; }
-.paction:disabled { opacity: .5; }
-.prow { display: flex; justify-content: space-between; }
-.plink { font-size: 10.5px; color: var(--accent-2); cursor: pointer; text-decoration: underline; }
-.plink.danger { color: #ff8a7e; }
+/* Controles de mídia em cápsula de vidro */
+.ctrls {
+  position: absolute; right: 12px; bottom: 12px;
+  display: flex; align-items: center; gap: 3px; padding: 3px;
+  border-radius: 999px; background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(10px);
+}
+.ctl {
+  width: 28px; height: 28px; border-radius: 50%; color: rgba(255,255,255,.88);
+  display: grid; place-items: center; transition: background .15s, color .15s, transform .15s;
+}
+.ctl:hover { background: rgba(255,255,255,.16); color: #fff; }
+.ctl.play {
+  width: 34px; height: 34px; background: #fff; color: #111;
+  box-shadow: 0 3px 10px rgba(0,0,0,.28);
+}
+.ctl.play:hover { background: #fff; color: #111; transform: scale(1.06); }
 
-.htimer { background: linear-gradient(160deg, #1b2838, #274469); }
-.hweather { background: linear-gradient(160deg, #152b3c, #1d648b); cursor: pointer; }
-.hmeet { background: linear-gradient(160deg, #1e2242, #313b7a); }
+.htimer { background: linear-gradient(155deg, #192636, #274469); }
+.hweather { background: linear-gradient(155deg, #142a3b, #1d648b); cursor: pointer; }
+.hmeet { background: linear-gradient(155deg, #1d2140, #313b7a); }
 .mhour { font-size: 22px; font-weight: 700; margin-top: 8px; color: #9fb3ff; }
 .msub { font-size: 12px; opacity: .9; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.meet-btn { margin-top: auto; padding: 6px 10px; border-radius: 10px; background: var(--accent); color: #111; font-size: 11.5px; font-weight: 700; }
 </style>

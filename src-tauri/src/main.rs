@@ -13,7 +13,6 @@ mod gitlab;
 mod hover;
 mod logger;
 mod media;
-mod photos;
 mod position;
 mod system;
 mod tray;
@@ -144,13 +143,6 @@ fn main() {
             games::steam_info,
             games::steam_set_key,
             games::steam_friends,
-            photos::gphotos_status,
-            photos::gphotos_set_client,
-            photos::gphotos_connect,
-            photos::gphotos_pick,
-            photos::gphotos_pick_folder,
-            photos::gphotos_list,
-            photos::gphotos_disconnect,
             update::install_update,
         ])
         .run(tauri::generate_context!())
