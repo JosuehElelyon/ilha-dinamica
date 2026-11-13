@@ -1,31 +1,27 @@
 {
   "name": "ilha-dinamica",
-  "productName": "Ilha Dinâmica",
-  "version": "1.0.0",
-  "description": "Dynamic Island para Windows — mídia, clipboard, foco, timer, notas, agenda e sistema",
-  "main": "src/main.js",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Dynamic Island para Windows — Tauri 2 (Rust) + Vue 3",
   "author": "Josueh",
   "license": "MIT",
+  "type": "module",
   "scripts": {
-    "start": "electron .",
-    "dist": "electron-builder --win nsis"
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "dev:web": "vite",
+    "build:web": "vue-tsc --noEmit && vite build",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.4",
+    "vue": "^3.5.45"
   },
   "devDependencies": {
-    "electron": "^33.2.0",
-    "electron-builder": "^25.1.8"
-  },
-  "build": {
-    "appId": "com.josueh.ilhadinamica",
-    "productName": "Ilha Dinâmica",
-    "files": ["src/**/*", "scripts/**/*", "assets/**/*", "package.json"],
-    "win": {
-      "target": "nsis",
-      "icon": "assets/icon.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
-    }
+    "@tauri-apps/cli": "^2.12.4",
+    "@vitejs/plugin-vue": "^6.0.11",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.8",
+    "vue-tsc": "^3.3.14"
   }
 }

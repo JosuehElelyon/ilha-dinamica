@@ -1,0 +1,110 @@
+/* Ilha Dinâmica — estilos globais (tema, ilha e controles compartilhados) */
+:root {
+  --h: 18;                 /* matiz que acompanha a música tocando */
+  --glow: .35;
+  --accent: #ff8a2b;       /* cor de destaque (Ajustes) */
+  --accent-2: color-mix(in srgb, var(--accent), white 30%);
+  --alpha: .94;            /* opacidade do fundo (Ajustes) */
+  --scale: 1;              /* tamanho (Ajustes) */
+  --txt: #f2f2f4;
+  --mute: #8b8b94;
+  --line: rgba(255,255,255,.07);
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+  --ease: cubic-bezier(.32,.72,0,1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #app { background: transparent; overflow: hidden; height: 100%; }
+body {
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; color: var(--txt);
+  user-select: none; -webkit-font-smoothing: antialiased; color-scheme: dark;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.mono { font-family: var(--mono); letter-spacing: .06em; }
+.mute { color: var(--mute); }
+.small { font-size: 11px; }
+.danger { color: #ff6b5e !important; }
+.empty { color: var(--mute); font-size: 13px; padding: 26px 8px; text-align: center; }
+::-webkit-scrollbar { width: 4px } ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px }
+
+/* ================= ILHA ================= */
+#island {
+  position: absolute; top: 6px; left: 50%;
+  transform: translateX(-50%) scale(var(--scale)); transform-origin: top center;
+  background:
+    linear-gradient(180deg, hsla(var(--h) 60% 30% / calc(var(--glow) * .35)), transparent 60%),
+    rgba(14,14,17,var(--alpha));
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 10px 40px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+  overflow: hidden;
+  transition: width .5s var(--ease), height .5s var(--ease), border-radius .5s var(--ease),
+              box-shadow .3s, transform .4s var(--ease);
+}
+#island.collapsed { width: 230px; height: 36px; border-radius: 18px; }
+#island.collapsed.toasting { width: 340px; height: 40px; border-radius: 20px; }
+#island.expanded  { width: 760px; height: 300px; border-radius: 30px; }
+#island.alert { box-shadow: 0 0 0 2px var(--accent), 0 10px 40px rgba(0,0,0,.55); }
+
+.panel {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  opacity: 0; pointer-events: none; transition: opacity .25s .05s;
+}
+.expanded .panel { opacity: 1; pointer-events: auto; transition-delay: .15s; }
+.glow { position: absolute; left: 50%; bottom: -120px; width: 700px; height: 220px; transform: translateX(-50%);
+  background: radial-gradient(closest-side, hsla(var(--h) 90% 55% / calc(var(--glow) * .5)), transparent);
+  pointer-events: none; }
+main { position: relative; flex: 1; min-height: 0; }
+.tab { position: absolute; inset: 4px 12px 0; animation: fade .3s var(--ease); }
+@keyframes fade { from { opacity: 0; transform: translateY(4px) } }
+
+/* pílula: some quando a ilha abre; texto mais largo durante avisos */
+.expanded .pill { opacity: 0; pointer-events: none; }
+.toasting .ptext { max-width: 210px !important; }
+
+/* ================= CONTROLES COMPARTILHADOS ================= */
+.icon-btn { padding: 2px 6px; border-radius: 8px; color: #d6d6dc; font-size: 13px; }
+.icon-btn:hover { background: rgba(255,255,255,.08); }
+input[type=checkbox] { accent-color: var(--accent); }
+
+.in { background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px;
+  color: var(--txt); font: 13px "Segoe UI", system-ui; outline: none; user-select: text; min-width: 0; }
+.in:focus { border-color: color-mix(in srgb, var(--accent), transparent 40%); }
+select.in { padding: 5px 8px; }
+select.in option { background: #1d1d22; }
+.grow { flex: 1; }
+.add { width: 32px; border-radius: 10px; background: var(--accent); color: #111; font-weight: 800; font-size: 16px; }
+.add:hover { background: var(--accent-2); }
+
+.pillbtn { padding: 5px 12px; border-radius: 12px; background: rgba(255,255,255,.08); font-size: 12px; white-space: nowrap; }
+.pillbtn:hover { background: rgba(255,255,255,.14); }
+.pillbtn.primary { background: var(--accent); color: #111; font-weight: 700; }
+.pillbtn.on { background: var(--accent); color: #111; }
+.pillbtn:disabled { opacity: .4; cursor: default; }
+
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent) var(--p, 50%), rgba(255,255,255,.1) var(--p, 50%)); outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); cursor: pointer; }
+input[type=range]:disabled { opacity: .35; }
+
+.seg { display: flex; background: rgba(255,255,255,.06); border-radius: 10px; padding: 2px; }
+.seg button { flex: 1; padding: 4px 0; border-radius: 8px; font-size: 12px; color: #c9c9cf; }
+.seg button.on { background: rgba(255,255,255,.14); color: #fff; font-weight: 600; }
+.chk { display: flex; align-items: center; gap: 6px; font-size: 12.5px; cursor: pointer; }
+.set-label { font-size: 10.5px; color: var(--mute); font-family: var(--mono); letter-spacing: .06em; }
+.set-label b { color: var(--txt); font-weight: 600; }
+
+.bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
+.bar b { display: block; height: 100%; width: 0; border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .6s var(--ease); }
+
+.switch { position: relative; width: 30px; height: 18px; border-radius: 9px; background: rgba(255,255,255,.15); flex: none; transition: background .2s; }
+.switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .2s var(--ease); }
+.switch.on { background: var(--accent); }
+.switch.on::after { transform: translateX(12px); }
+
+.stat { display: grid; grid-template-columns: 80px 1fr 96px; align-items: center; gap: 14px; }
+.stat .label { font-size: 11px; color: var(--mute); }
+.stat .val { font-size: 12px; text-align: right; }
+.big-ico { font-size: 16px; justify-self: start; padding: 0 4px; }
+
+.ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }

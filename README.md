@@ -1,49 +1,66 @@
-# Ilha Dinâmica — Dynamic Island para Windows
+# Ilha Dinâmica
 
-Uma pílula que fica no topo da tela e se expande quando você passa o mouse por cima.
+Uma **Dynamic Island para Windows**: uma pílula no topo da tela que se expande quando você passa o mouse por cima.
 
-## O que tem
-- **Início**: cronômetro, música tocando agora **com a capa do álbum** e controles, e Pomodoro.
-- **Ações**: atalhos que você cria e apaga (sites, programas, pastas, comandos como `calc` ou `ms-settings:`). Use **Editar** para remover ou alterar.
-- **Clips**: as últimas 8 coisas copiadas, só na memória.
+Feita com **Tauri 2** — backend em **Rust**, interface em **Vue 3 + TypeScript** — e usa o WebView2 que já vem no Windows. Consome muito menos memória que a versão antiga em Electron.
+
+## Recursos
+- **Início**: cronômetro, música tocando agora com a **capa do álbum** e controles, e Pomodoro (25 + 5 min).
+- **Ações**: seus atalhos para sites, programas, pastas e comandos (`calc`, `ms-settings:`…). Dá para criar, editar e remover.
+- **Clips**: as últimas 8 coisas copiadas (só na memória, nunca no disco).
 - **Notas**: bloco de notas que salva sozinho.
 - **Timer**: contagem regressiva com aviso.
-- **Agenda**: calendário com **lembretes** (clique no dia, escolha o horário e escreva).
-- **Clima**: agora, próximas 8 horas e 6 dias (Open-Meteo, sem cadastro).
-- **Áudio**: escolha a saída (fones, alto-falantes, monitor) e o microfone padrão, com volume e mudo de cada um.
-- **Sistema**: brilho da tela (notebooks), CPU, RAM, bateria.
-- **Limpeza**: analisa e limpa arquivos temporários, cache dos navegadores (Chrome, Edge, Brave, Opera, Firefox), cache do Discord/VS Code, miniaturas, relatórios de erro, Temp do Windows, cache do Windows Update e Lixeira. Também tem "Otimizar memória" e "Limpar cache DNS". Só apaga cache: senhas, histórico e cookies dos navegadores ficam intactos. Arquivos em uso são pulados.
-- **Processos**: lista o que está rodando com CPU e RAM (agrupado por programa ou um por um), busca e botão Finalizar com confirmação. Processos essenciais do Windows ficam protegidos (🔒).
-- **••• → Reiniciar como administrador**: libera a limpeza das pastas do Windows e finalizar processos de outros usuários.
-- Botão **+** (canto esquerdo): ativa, desativa e reordena as abas.
-- **••• → Personalizar**: cor de destaque, tamanho, opacidade, cidade do clima, cor que acompanha a música e quais avisos aparecem.
-- **Avisos na pílula**: volume/mudo, microfone, fones conectados/desconectados, bateria fraca/carregando, internet caiu/voltou, música nova, timer, foco e lembretes.
+- **Agenda**: calendário com **lembretes**.
+- **Clima**: agora, próximas 8 horas e 6 dias (Open-Meteo).
+- **Áudio**: escolha a saída (fones, alto-falantes, monitor) e o microfone, com volume e mudo.
+- **Sistema**: brilho (notebooks), CPU, RAM e bateria.
+- **Limpeza**: temporários, cache dos navegadores e apps, miniaturas, relatórios de erro, Temp do Windows, Windows Update e Lixeira; otimizar memória e limpar DNS.
+- **Processos**: CPU/RAM por programa, busca e finalizar (processos essenciais do Windows ficam protegidos).
+- Botão **+**: ativa, desativa e reordena as abas.
+- **••• → Personalizar**: cor, tamanho, opacidade, cidade do clima e avisos.
+- **Avisos na pílula**: volume, microfone, fones conectados, bateria, internet, música nova, timer, foco e lembretes.
+- Atalho **Ctrl + Alt + Espaço** abre/fecha a ilha. Ícone na bandeja com "Iniciar com o Windows".
 
-## Como instalar
-1. Instale o **Node.js LTS**: https://nodejs.org
-2. Extraia esta pasta, abra o terminal nela e rode:
-   ```
-   npm install
-   npm start
-   ```
-3. Para gerar um instalador `.exe`:
-   ```
-   npm run dist
-   ```
-   O instalador fica na pasta `dist/`.
+## Como compilar e instalar
 
-## Atalhos e dicas
-- **Ctrl + Alt + Espaço**: abre/fecha a ilha e a mantém aberta.
-- Ícone na bandeja (perto do relógio): ativar "Iniciar com o Windows" ou sair.
-- Menu **•••** dentro da ilha: as mesmas opções, mais "Manter aberta".
-- A área transparente em volta da ilha não bloqueia cliques.
+### Pré-requisitos (uma vez só)
+1. **Node.js LTS** — https://nodejs.org
+2. **Rust** — https://rustup.rs (baixe e rode o `rustup-init.exe`, opção padrão)
+3. **Visual Studio Build Tools** — https://visualstudio.microsoft.com/visual-cpp-build-tools/
+   No instalador, marque **"Desenvolvimento para desktop com C++"** (inclui o MSVC e o Windows SDK).
+4. **WebView2** — já vem no Windows 10 e 11.
 
-## Observações
-- O brilho só funciona na tela do notebook. Monitores externos normalmente não aceitam ajuste pelo Windows.
-- A troca de dispositivo padrão usa a mesma interface interna do Windows que apps como EarTrumpet usam.
-- Ações e configurações ficam salvas em `%APPDATA%\Ilha Dinâmica\data.json`.
+### Compilar
+```powershell
+git clone https://github.com/JosuehElelyon/ilha-dinamica.git
+cd ilha-dinamica
+npm install
+npm run build
+```
+A primeira compilação do Rust demora alguns minutos. O instalador fica em:
+```
+src-tauri\target\release\bundle\nsis\Ilha Dinâmica_2.0.0_x64-setup.exe
+```
 
-## Personalizar
-- Tempos do Pomodoro: `FOCO` e `PAUSA` em `src/renderer.js`.
-- Cores e tamanhos: `src/style.css` (`#island.expanded` define o tamanho aberto).
-- Largura/altura da janela: `W` e `H` em `src/main.js`.
+### Desenvolver
+- `npm run dev` — abre o app com recarregamento automático.
+- `npm run dev:web` — só a interface, no navegador, com dados simulados (não precisa do Rust).
+
+## Estrutura
+```
+src/                 interface (Vue 3 + TypeScript)
+  App.vue            ilha: expandir/recolher, tema e avisos
+  components/        pílula, topo, barra de abas e uma pasta tabs/ com cada aba
+  lib/api.ts         ponte com o Rust (invoke/listen) + simulador
+  store/             estado compartilhado e configurações
+src-tauri/           backend (Rust)
+  src/hover.rs       click-through da área transparente
+  src/media.rs       mídia + capa (Windows Media Control)
+  src/audio.rs       volume, microfone e dispositivos (Core Audio)
+  src/system.rs      CPU, RAM, bateria, brilho e processos
+  src/clean.rs       limpeza, Lixeira, memória e DNS
+  src/actions.rs     ações, seletor de arquivos, notificações, admin
+```
+
+## Licença
+[MIT](LICENSE) © 2026 Josueh
