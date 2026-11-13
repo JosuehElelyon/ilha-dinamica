@@ -7,6 +7,20 @@ export type ModuleId =
   | 'home' | 'work' | 'games' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
   | 'weather' | 'audio' | 'sys' | 'clean' | 'procs'
 
+export type HomeCardId = 'stopwatch' | 'media' | 'focus' | 'photos' | 'timer' | 'weather' | 'meeting'
+
+export const HOME_CARDS: Record<HomeCardId, { label: string; icon: string }> = {
+  stopwatch: { label: 'Cronômetro', icon: '⏱️' },
+  media: { label: 'Música', icon: '🎵' },
+  focus: { label: 'Foco', icon: '🎯' },
+  photos: { label: 'Google Fotos', icon: '🖼️' },
+  timer: { label: 'Timer', icon: '⏳' },
+  weather: { label: 'Clima', icon: '⛅' },
+  meeting: { label: 'Reunião', icon: '📹' }
+}
+
+export const DEFAULT_HOME_CARDS: HomeCardId[] = ['stopwatch', 'media', 'focus', 'photos']
+
 export const MODULES: Record<ModuleId, string> = {
   home: 'INÍCIO', work: 'TRABALHO', games: 'JOGOS', actions: 'AÇÕES', tools: 'FERRAMENTAS', snippets: 'SNIPPETS', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',
   cal: 'AGENDA', weather: 'CLIMA', audio: 'ÁUDIO', sys: 'SISTEMA', clean: 'LIMPEZA', procs: 'PROCESSOS'
@@ -50,6 +64,8 @@ export interface Settings {
   steamId: string
   friendAlerts: boolean
   icsUrl: string
+  homeCards: HomeCardId[]
+  focusMinutes: number
 }
 
 const DEFAULTS: Settings = {
@@ -71,7 +87,9 @@ const DEFAULTS: Settings = {
   vpnExclusive: false,
   steamId: '',
   friendAlerts: true,
-  icsUrl: ''
+  icsUrl: '',
+  homeCards: [...DEFAULT_HOME_CARDS],
+  focusMinutes: 25
 }
 
 export const S = reactive<Settings>(structuredClone(DEFAULTS))
@@ -101,6 +119,10 @@ export function loadSettings(saved: Record<string, unknown>) {
   if (!Array.isArray(S.snippets)) S.snippets = DEFAULT_SNIPPETS
   if (!Array.isArray(S.orgs)) S.orgs = structuredClone(DEFAULTS.orgs)
   S.orgs = S.orgs.map(o => ({ ...o, repos: Array.isArray(o.repos) ? o.repos : [] }))
+  const knownCards = Object.keys(HOME_CARDS) as HomeCardId[]
+  const cards = (Array.isArray(saved.homeCards) ? saved.homeCards : DEFAULT_HOME_CARDS).filter((c): c is HomeCardId => knownCards.includes(c))
+  S.homeCards = cards.length ? cards : [...DEFAULT_HOME_CARDS]
+  S.focusMinutes = Math.min(180, Math.max(1, Number(S.focusMinutes) || 25))
 }
 
 export const activeModules = () => S.modules.filter(m => !S.modulesOff.includes(m))

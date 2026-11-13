@@ -1,8 +1,10 @@
 import { reactive, ref } from 'vue'
 import { api } from '../lib/api'
+import { fmt } from '../lib/format'
 import { parseIcs } from '../lib/ics'
+import { playAlertSound } from '../lib/sound'
 import type { Anchor, Clip, Devices, MediaInfo, Meeting, Reminder, SysInfo, VolInfo } from '../lib/types'
-import type { ModuleId } from './settings'
+import { S, save, type ModuleId } from './settings'
 
 export type TabId = ModuleId | 'modules' | 'settings'
 
@@ -90,8 +92,9 @@ export function showToast(t: Toast) {
   toastTimer = window.setTimeout(() => (island.toast = null), t.ms ?? 2500)
 }
 
-/** Aviso importante: notificação do Windows + ilha piscando */
+/** Aviso importante: som + notificação do Windows + ilha piscando */
 export function alertIsland(title: string, body = '', icon = '🔔') {
+  playAlertSound()
   api.notify(title, body)
   showToast({ icon, text: body ? `${title} · ${body}` : title, alert: true, ms: 6000 })
 }
@@ -111,11 +114,17 @@ export const live = reactive({
 export const FOCO = 25 * 60
 export const PAUSA = 5 * 60
 
-export const stopwatch = reactive({ running: false, start: 0, acc: 0 })
+export const stopwatch = reactive({ running: false, start: 0, acc: 0, goalSec: 0, goalFired: false })
 export const swElapsed = () => (stopwatch.acc + (stopwatch.running ? now.value - stopwatch.start : 0)) / 1000
 
-export const focus = reactive({ mode: 'focus' as 'focus' | 'break', left: FOCO, running: false, endAt: 0 })
+export const focus = reactive({ mode: 'focus' as 'focus' | 'break', left: FOCO, focusSec: FOCO, running: false, endAt: 0 })
 export const focusLeft = () => (focus.running ? (focus.endAt - now.value) / 1000 : focus.left)
+export function setFocusMinutes(min: number) {
+  const m = Math.min(180, Math.max(1, Math.round(min)))
+  save('focusMinutes', m)
+  focus.focusSec = m * 60
+  if (!focus.running && focus.mode === 'focus') focus.left = focus.focusSec
+}
 
 export const timer = reactive({ total: 5 * 60, left: 5 * 60, running: false, endAt: 0 })
 export const timerLeft = () => (timer.running ? (timer.endAt - now.value) / 1000 : timer.left)
@@ -156,12 +165,16 @@ export function nextMeeting(): Meeting | null {
 
 /** Verificações que rodam a cada tique do relógio */
 export function checkAll() {
+  if (stopwatch.running && stopwatch.goalSec > 0 && !stopwatch.goalFired && swElapsed() >= stopwatch.goalSec) {
+    stopwatch.goalFired = true
+    alertIsland('Cronômetro atingiu a meta!', fmt(stopwatch.goalSec), '⏱️')
+  }
   if (focus.running && focusLeft() <= 0) {
     if (focus.mode === 'focus') {
       focus.mode = 'break'; focus.left = PAUSA
       alertIsland('Foco concluído!', 'Pausa de 5 minutos', '🎯')
     } else {
-      focus.mode = 'focus'; focus.left = FOCO
+      focus.mode = 'focus'; focus.left = focus.focusSec || S.focusMinutes * 60
       alertIsland('Pausa encerrada', 'Bora para mais um ciclo', '💪')
     }
     focus.endAt = Date.now() + focus.left * 1000

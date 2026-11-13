@@ -6,7 +6,7 @@ import { api } from './lib/api'
 import { hexHue, hashHue, hueFromImage } from './lib/format'
 import { loadWeather } from './lib/weather'
 import { S, loadSettings, activeModules } from './store/settings'
-import { island, live, now, checkAll, showToast, alertIsland, reminders, remDate, checkUpdate, setAutoUpdateGetter, refreshMeetings } from './store/state'
+import { island, live, now, checkAll, showToast, alertIsland, reminders, remDate, checkUpdate, setAutoUpdateGetter, refreshMeetings, focus } from './store/state'
 import type { Devices, VolInfo } from './lib/types'
 
 import IslandPill from './components/IslandPill.vue'
@@ -171,6 +171,8 @@ watch(now, checkAll)
 onMounted(async () => {
   const d = await api.getData()
   loadSettings(d.settings || {})
+  focus.focusSec = S.focusMinutes * 60
+  if (!focus.running && focus.mode === 'focus') focus.left = focus.focusSec
   Object.assign(island, {
     isAdmin: d.isAdmin, autostart: d.autostart, platform: d.platform, version: d.version,
     anchor: d.anchor || island.anchor,
