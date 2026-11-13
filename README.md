@@ -7,6 +7,8 @@ Feita com **Tauri 2** — backend em **Rust**, interface em **Vue 3 + TypeScript
 ## Recursos
 - **Início**: cronômetro, música tocando agora com a **capa do álbum** e controles, e Pomodoro (25 + 5 min).
 - **Ações**: seus atalhos para sites, programas, pastas e comandos (`calc`, `ms-settings:`…). Dá para criar, editar e remover.
+- **Ferramentas**: JSON (formatar/validar/minificar), JWT (header, payload e validade), Base64, URL, timestamp ↔ data, UUID, SHA-256/1/512, conversão de case e contagem. No **Clips**, o que você copia é reconhecido (JWT, JSON, timestamp…) e aparece um botão para abrir direto na ferramenta.
+- **Snippets**: biblioteca de trechos (Git/GitLab, kubectl, Docker, SQL, ADR, descrição de MR, C4) com busca, categorias e variáveis `{assim}` preenchidas na hora de copiar. Crie, edite e apague os seus.
 - **Clips**: as últimas 8 coisas copiadas (só na memória, nunca no disco).
 - **Notas**: bloco de notas que salva sozinho.
 - **Timer**: contagem regressiva com aviso.
@@ -67,6 +69,8 @@ src/                 interface (Vue 3 + TypeScript)
   App.vue            ilha: expandir/recolher, tema e avisos
   components/        pílula, topo, barra de abas e uma pasta tabs/ com cada aba
   lib/api.ts         ponte com o Rust (invoke/listen) + simulador
+  lib/devtools.ts    funções da caixa de ferramentas
+  lib/snippets.ts    snippets padrão e variáveis
   store/             estado compartilhado e configurações
 src-tauri/           backend (Rust)
   src/hover.rs       click-through da área transparente

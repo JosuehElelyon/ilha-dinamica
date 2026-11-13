@@ -91,7 +91,8 @@ export const mock = {
     // dados iniciais de exemplo
     setTimeout(() => {
       if (ev === 'clips') cb([
-        { text: 'Reunião remarcada para 15h', t: Date.now() },
+        { text: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqb3N1ZWgiLCJvcmciOiJGTkRFIiwiZXhwIjo0MTAyNDQ0ODAwfQ.c2lnbmF0dXJl', t: Date.now() },
+        { text: 'Reunião remarcada para 15h', t: Date.now() - 30000 },
         { text: 'hello@example.com', t: Date.now() - 120000 },
         { text: 'https://github.com/JosuehElelyon/ilha-dinamica', t: Date.now() - 4e6 }
       ])

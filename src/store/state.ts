@@ -34,6 +34,14 @@ export const island = reactive({
   update: { checking: false, installing: false, available: '', status: '' }
 })
 
+/* ---------- caixa de ferramentas (compartilhada com o Clips) ---------- */
+export const toolbox = reactive({ input: '', tool: 'json' as import('../lib/devtools').ToolId })
+export function openTool(tool: import('../lib/devtools').ToolId, input: string) {
+  toolbox.tool = tool
+  toolbox.input = input
+  island.tab = 'tools'
+}
+
 /* ---------- atualização automática ---------- */
 export async function checkUpdate(manual = false) {
   if (island.update.checking || island.update.installing) return

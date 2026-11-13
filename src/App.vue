@@ -14,6 +14,8 @@ import IslandHeader from './components/IslandHeader.vue'
 import NavBar from './components/NavBar.vue'
 import HomeTab from './components/tabs/HomeTab.vue'
 import ActionsTab from './components/tabs/ActionsTab.vue'
+import ToolsTab from './components/tabs/ToolsTab.vue'
+import SnippetsTab from './components/tabs/SnippetsTab.vue'
 import ClipsTab from './components/tabs/ClipsTab.vue'
 import NotesTab from './components/tabs/NotesTab.vue'
 import TimerTab from './components/tabs/TimerTab.vue'
@@ -27,7 +29,7 @@ import ModulesTab from './components/tabs/ModulesTab.vue'
 import SettingsTab from './components/tabs/SettingsTab.vue'
 
 const TABS: Record<string, Component> = {
-  home: HomeTab, actions: ActionsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
+  home: HomeTab, actions: ActionsTab, tools: ToolsTab, snippets: SnippetsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
   cal: CalendarTab, weather: WeatherTab, audio: AudioTab, sys: SystemTab, clean: CleanTab,
   procs: ProcessesTab, modules: ModulesTab, settings: SettingsTab
 }

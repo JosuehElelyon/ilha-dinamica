@@ -1,13 +1,14 @@
 import { reactive } from 'vue'
 import { api } from '../lib/api'
 import type { Action } from '../lib/types'
+import { DEFAULT_SNIPPETS, type Snippet } from '../lib/snippets'
 
 export type ModuleId =
-  | 'home' | 'actions' | 'clips' | 'notes' | 'timer' | 'cal'
+  | 'home' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
   | 'weather' | 'audio' | 'sys' | 'clean' | 'procs'
 
 export const MODULES: Record<ModuleId, string> = {
-  home: 'INÍCIO', actions: 'AÇÕES', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',
+  home: 'INÍCIO', actions: 'AÇÕES', tools: 'FERRAMENTAS', snippets: 'SNIPPETS', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',
   cal: 'AGENDA', weather: 'CLIMA', audio: 'ÁUDIO', sys: 'SISTEMA', clean: 'LIMPEZA', procs: 'PROCESSOS'
 }
 
@@ -35,6 +36,7 @@ export interface Settings {
   procSort: 'c' | 'm'
   locked: boolean
   autoUpdate: boolean
+  snippets: Snippet[]
 }
 
 const DEFAULTS: Settings = {
@@ -50,7 +52,8 @@ const DEFAULTS: Settings = {
   cleanSel: ['temp', 'browsers', 'apps', 'thumbs', 'crash', 'wintemp', 'update'],
   procSort: 'm',
   locked: false,
-  autoUpdate: true
+  autoUpdate: true,
+  snippets: DEFAULT_SNIPPETS
 }
 
 export const S = reactive<Settings>(structuredClone(DEFAULTS))
@@ -67,10 +70,17 @@ export function loadSettings(saved: Record<string, unknown>) {
   S.alerts = { ...DEFAULTS.alerts, ...((saved.alerts as object) || {}) }
   const known = Object.keys(MODULES) as ModuleId[]
   const mods = (Array.isArray(saved.modules) ? saved.modules : []).filter((m): m is ModuleId => known.includes(m))
-  // módulos novos entram automaticamente no fim da lista
-  S.modules = [...mods, ...known.filter(m => !mods.includes(m))]
+  // módulos novos entram logo depois do módulo que vem antes deles na ordem padrão
+  const merged = [...mods]
+  known.forEach((m, i) => {
+    if (merged.includes(m)) return
+    const prev = known.slice(0, i).reverse().find(p => merged.includes(p))
+    merged.splice(prev ? merged.indexOf(prev) + 1 : 0, 0, m)
+  })
+  S.modules = merged
   if (!Array.isArray(S.actions)) S.actions = DEFAULT_ACTIONS
   if (!Array.isArray(S.cleanSel)) S.cleanSel = DEFAULTS.cleanSel
+  if (!Array.isArray(S.snippets)) S.snippets = DEFAULT_SNIPPETS
 }
 
 export const activeModules = () => S.modules.filter(m => !S.modulesOff.includes(m))
