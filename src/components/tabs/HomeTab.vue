@@ -18,7 +18,9 @@ const availableToAdd = computed(() =>
   (Object.keys(HOME_CARDS) as HomeCardId[]).filter(id => !S.homeCards.includes(id))
 )
 const gridStyle = computed(() => ({
-  gridTemplateColumns: S.homeCards.map(id => (id === 'media' ? '1.85fr' : '1fr')).join(' ')
+  gridTemplateColumns: S.homeCards
+    .map(id => (id === 'media' ? 'minmax(230px, 1.85fr)' : 'minmax(160px, 1fr)'))
+    .join(' ')
 }))
 
 function moveCard(idx: number, delta: number) {
@@ -277,7 +279,11 @@ const nextMeetToday = computed(() => {
 }
 .edit-toggle:hover, .edit-toggle.active { background: var(--accent); border-color: transparent; color: #111; }
 
-.grid { flex: 1; min-height: 0; display: grid; gap: 9px; }
+.grid {
+  flex: 1; min-height: 0; display: grid; gap: 10px;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+}
+.grid::-webkit-scrollbar { display: none; }
 .card {
   position: relative; border-radius: 22px; padding: 14px 16px; overflow: hidden;
   display: flex; flex-direction: column; min-width: 0;
@@ -305,7 +311,7 @@ const nextMeetToday = computed(() => {
 .tiny { font-size: 10.5px; white-space: nowrap; }
 
 .label { font-size: 10.5px; opacity: .82; letter-spacing: .04em; }
-.big { font-size: 32px; font-weight: 600; margin-top: auto; letter-spacing: -.01em; line-height: 1.05; }
+.big { font-size: clamp(22px, 3vw, 29px); font-weight: 600; margin-top: auto; letter-spacing: -.01em; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sub { font-size: 12px; opacity: .82; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .pill-chip {
