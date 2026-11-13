@@ -4,11 +4,11 @@ import type { Action, Org } from '../lib/types'
 import { DEFAULT_SNIPPETS, type Snippet } from '../lib/snippets'
 
 export type ModuleId =
-  | 'home' | 'work' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
+  | 'home' | 'work' | 'games' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
   | 'weather' | 'audio' | 'sys' | 'clean' | 'procs'
 
 export const MODULES: Record<ModuleId, string> = {
-  home: 'INÍCIO', work: 'TRABALHO', actions: 'AÇÕES', tools: 'FERRAMENTAS', snippets: 'SNIPPETS', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',
+  home: 'INÍCIO', work: 'TRABALHO', games: 'JOGOS', actions: 'AÇÕES', tools: 'FERRAMENTAS', snippets: 'SNIPPETS', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',
   cal: 'AGENDA', weather: 'CLIMA', audio: 'ÁUDIO', sys: 'SISTEMA', clean: 'LIMPEZA', procs: 'PROCESSOS'
 }
 
@@ -47,6 +47,8 @@ export interface Settings {
   snippets: Snippet[]
   orgs: Org[]
   vpnExclusive: boolean
+  steamId: string
+  friendAlerts: boolean
 }
 
 const DEFAULTS: Settings = {
@@ -69,7 +71,9 @@ const DEFAULTS: Settings = {
     newOrg('fnde', 'FNDE', '#34d058', { type: 'globalprotect', name: 'vpn01.fnde.gov.br', adapter: 'PANGP' }),
     newOrg('basa', 'BASA', '#ffd23f', { type: 'cisco', name: 'vpn.basa.com.br/parceiros', adapter: 'Cisco' })
   ],
-  vpnExclusive: false
+  vpnExclusive: false,
+  steamId: '',
+  friendAlerts: true
 }
 
 export const S = reactive<Settings>(structuredClone(DEFAULTS))

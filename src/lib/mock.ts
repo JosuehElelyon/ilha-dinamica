@@ -110,6 +110,24 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
   probe_host: () => ({ ok: true, ms: 38 }),
   vpn_set_password: (a) => !!a.password,
   vpn_has_passwords: () => [],
+  games_list: () => [
+    { id: 'steam-730', name: 'Counter-Strike 2', source: 'steam', launch: 'steam://rungameid/730', image: '', appid: 730, last_played: 1763050000, size: 3.4e10 },
+    { id: 'steam-570', name: 'Dota 2', source: 'steam', launch: 'steam://rungameid/570', image: '', appid: 570, last_played: 1762900000, size: 4e10 },
+    { id: 'steam-1086940', name: "Baldur's Gate 3", source: 'steam', launch: 'steam://rungameid/1086940', image: '', appid: 1086940, last_played: 1762000000, size: 1.5e11 },
+    { id: 'steam-1172470', name: 'Apex Legends', source: 'steam', launch: 'steam://rungameid/1172470', image: '', appid: 1172470, last_played: 1761000000, size: 7e10 },
+    { id: 'epic-Fortnite', name: 'Fortnite', source: 'epic', launch: '', image: '', appid: 0, last_played: 0, size: 3e10 },
+    { id: 'epic-RocketLeague', name: 'Rocket League', source: 'epic', launch: '', image: '', appid: 0, last_played: 0, size: 2e10 },
+    { id: 'gog-1', name: 'The Witcher 3: Wild Hunt', source: 'gog', launch: '', image: '', appid: 0, last_played: 0, size: 5e10 }
+  ],
+  steam_info: () => ({ installed: true, steamid: '76561198000000001', persona: 'Josueh', has_key: true }),
+  steam_set_key: (a) => !!a.key,
+  steam_friends: () => [
+    { steamid: '1', name: 'Marcão', avatar: '', state: 1, game: 'Counter-Strike 2', gameid: '730', lobby: '109775241000000000' },
+    { steamid: '2', name: 'Ana Clara', avatar: '', state: 1, game: 'Dota 2', gameid: '570', lobby: '' },
+    { steamid: '3', name: 'Rafa_BR', avatar: '', state: 1, game: 'Elden Ring', gameid: '1245620', lobby: '' },
+    { steamid: '4', name: 'dudu', avatar: '', state: 3, game: '', gameid: '', lobby: '' },
+    { steamid: '5', name: 'Pedro H.', avatar: '', state: 1, game: '', gameid: '', lobby: '' }
+  ],
   gitlab_set_token: (a) => !!String(a.token).trim(),
   gitlab_has_tokens: () => ['enap', 'fnde'],
   gitlab_mrs: (a) => {

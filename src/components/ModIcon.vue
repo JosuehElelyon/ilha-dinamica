@@ -14,6 +14,7 @@ const PATHS: Record<string, string> = {
   clean: '<path d="M19 4l-7 7"/><path d="M12.5 10.5l1 1c.8.8.8 2 0 2.8L9 19H4v-5l4.5-4.5c.8-.8 2-.8 2.8 0z"/><path d="M7 15l2 2"/>',
   procs: '<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="1.5"/>',
   work: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
+  games: '<path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-3.95 3.4L2 14.6A2.6 2.6 0 0 0 6.6 16.6L9 14h6l2.4 2.6a2.6 2.6 0 0 0 4.6-2L21.25 8.4A4 4 0 0 0 17.3 5z"/>',
   tools: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
   snippets: '<path d="M8 6l-5 6 5 6M16 6l5 6-5 6M13.5 4l-3 16"/>',
   plus: '<path d="M12 5v14M5 12h14"/>'

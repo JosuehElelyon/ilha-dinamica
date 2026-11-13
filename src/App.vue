@@ -16,6 +16,8 @@ import HomeTab from './components/tabs/HomeTab.vue'
 import ActionsTab from './components/tabs/ActionsTab.vue'
 import ToolsTab from './components/tabs/ToolsTab.vue'
 import WorkTab from './components/tabs/WorkTab.vue'
+import GamesTab from './components/tabs/GamesTab.vue'
+import { initGames } from './store/games'
 import { initWork } from './store/work'
 import SnippetsTab from './components/tabs/SnippetsTab.vue'
 import ClipsTab from './components/tabs/ClipsTab.vue'
@@ -31,7 +33,7 @@ import ModulesTab from './components/tabs/ModulesTab.vue'
 import SettingsTab from './components/tabs/SettingsTab.vue'
 
 const TABS: Record<string, Component> = {
-  home: HomeTab, work: WorkTab, actions: ActionsTab, tools: ToolsTab, snippets: SnippetsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
+  home: HomeTab, work: WorkTab, games: GamesTab, actions: ActionsTab, tools: ToolsTab, snippets: SnippetsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
   cal: CalendarTab, weather: WeatherTab, audio: AudioTab, sys: SystemTab, clean: CleanTab,
   procs: ProcessesTab, modules: ModulesTab, settings: SettingsTab
 }
@@ -173,6 +175,7 @@ onMounted(async () => {
   loadWeather()
   setInterval(loadWeather, 30 * 60 * 1000)
   initWork()
+  initGames()
   // procura atualizações 10 s depois de abrir e a cada 6 horas
   setAutoUpdateGetter(() => S.autoUpdate)
   setTimeout(() => checkUpdate(), 10_000)

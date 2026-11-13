@@ -3,7 +3,7 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 import { listen as tauriListen } from '@tauri-apps/api/event'
 import type {
-  Adapter, Anchor, AppData, Clip, MrList, Org, VpnResult, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
+  Adapter, Anchor, Friend, Game, SteamInfo, AppData, Clip, MrList, Org, VpnResult, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
 } from './types'
 import { mock } from './mock'
 
@@ -78,6 +78,12 @@ export const api = {
   gitlabSetToken: (org: string, token: string) => invoke<boolean>('gitlab_set_token', { org, token }),
   gitlabHasTokens: (orgs: string[]) => invoke<string[]>('gitlab_has_tokens', { orgs }),
   gitlabMrs: (org: string, url: string, insecure: boolean) => invoke<MrList>('gitlab_mrs', { org, url, insecure }),
+
+  // jogos
+  gamesList: () => invoke<Game[]>('games_list'),
+  steamInfo: () => invoke<SteamInfo>('steam_info'),
+  steamSetKey: (key: string) => invoke<boolean>('steam_set_key', { key }),
+  steamFriends: (steamid: string) => invoke<Friend[]>('steam_friends', { steamid }),
 
   // eventos vindos do Rust
   onHover: (cb: (inside: boolean) => void) => on('hover', cb),

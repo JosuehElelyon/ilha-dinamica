@@ -7,6 +7,7 @@ mod audio;
 mod clean;
 mod clipboard;
 mod data;
+mod games;
 mod gitlab;
 mod hover;
 mod logger;
@@ -126,6 +127,10 @@ fn main() {
             gitlab::gitlab_set_token,
             gitlab::gitlab_has_tokens,
             gitlab::gitlab_mrs,
+            games::games_list,
+            games::steam_info,
+            games::steam_set_key,
+            games::steam_friends,
             update::install_update,
         ])
         .run(tauri::generate_context!())
