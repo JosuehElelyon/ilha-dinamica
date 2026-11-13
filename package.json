@@ -1,7 +1,7 @@
 {
   "name": "ilha-dinamica",
   "private": true,
-  "version": "2.9.1",
+  "version": "2.9.2",
   "description": "Dynamic Island para Windows — Tauri 2 (Rust) + Vue 3",
   "author": "Josueh",
   "license": "MIT",
