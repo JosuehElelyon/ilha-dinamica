@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Topo da ilha: data/clima, "olhinhos", hora e menu •••
 import { computed } from 'vue'
+import BlackCat from './BlackCat.vue'
 import { api } from '../lib/api'
 import { DIAS, MESES, pad } from '../lib/format'
 import { island, live, now, stopwatch, focus, timer, checkUpdate, installUpdate, nextMeeting } from '../store/state'
@@ -34,7 +35,7 @@ function center() { island.menuOpen = false; api.resetPosition() }
 <template>
   <header :class="{ draggable: !S.locked }" :title="S.locked ? '' : 'Arraste para mover a ilha'" @mousedown="drag" @dblclick="!S.locked && center()">
     <span class="mono">{{ date }}</span>
-    <span class="eyes" :class="{ busy }"><i /><i /></span>
+    <BlackCat :busy="busy" />
     <span class="right">
       <button v-if="meet?.joinUrl" class="meetbtn" :title="`Entrar em: ${meet.summary}`" @click.stop="api.runAction(meet.joinUrl)">📹 Entrar</button>
       <button v-if="island.update.available" class="upd" :disabled="island.update.installing"

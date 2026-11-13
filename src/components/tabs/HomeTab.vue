@@ -150,6 +150,21 @@ async function pickPhotos() {
   }
 }
 
+async function pickFolder() {
+  gp.busy = true
+  try {
+    const imgs = await api.gphotosPickFolder()
+    if (imgs.length) {
+      gp.list = imgs
+      gp.idx = 0
+      gp.cfgOpen = false
+      showToast({ icon: '🖼️', text: `${imgs.length} fotos carregadas da pasta`, ms: 2500 })
+    }
+  } finally {
+    gp.busy = false
+  }
+}
+
 async function disconnectGoogle() {
   await api.gphotosDisconnect()
   gp.connected = false
@@ -273,30 +288,34 @@ onUnmounted(() => clearInterval(slideTimer))
               <span class="label mono">GOOGLE FOTOS</span>
               <button v-if="gp.cfgOpen && gp.list.length" class="pbtn" title="Voltar" @click="gp.cfgOpen = false">✕</button>
             </div>
-            <template v-if="!gp.connected || gp.editClient">
-              <div class="psetup">
-                <template v-if="!gp.hasClient || gp.editClient">
-                  <input v-model="gp.clientId" class="pin" placeholder="Client ID OAuth (.apps.googleusercontent.com)">
-                  <input v-model="gp.clientSecret" type="password" class="pin" placeholder="Client Secret (App p/ computador)">
-                  <a class="plink" @click="api.runAction('https://console.cloud.google.com/apis/credentials')">Google Cloud Console ↗</a>
-                </template>
-                <span v-else class="psub">Ative a <b>Photos Picker API</b> e conecte sua conta.</span>
-                <button class="paction" :disabled="gp.busy || ((!gp.hasClient || gp.editClient) && !gp.clientId.trim())" @click="connectGoogle">
-                  {{ gp.busy ? 'Aguardando…' : 'Conectar Google' }}
-                </button>
-                <a v-if="gp.hasClient && !gp.editClient" class="plink" @click="gp.editClient = true">Alterar Client ID</a>
-              </div>
+        <template v-if="!gp.connected || gp.editClient">
+          <div class="psetup">
+            <template v-if="!gp.hasClient || gp.editClient">
+              <input v-model="gp.clientId" class="pin" placeholder="Client ID OAuth (opcional se usar pasta)">
+              <input v-model="gp.clientSecret" type="password" class="pin" placeholder="Client Secret">
             </template>
-            <template v-else>
-              <div class="psetup">
-                <span class="psub">{{ gp.list.length ? `${gp.list.length} fotos salvas` : 'Conta vinculada! Escolha suas fotos:' }}</span>
-                <button class="paction" :disabled="gp.busy" @click="pickPhotos">{{ gp.busy ? 'Abrindo…' : 'Escolher fotos' }}</button>
-                <div class="prow">
-                  <a class="plink" @click="gp.editClient = true">Client ID</a>
-                  <a class="plink danger" @click="disconnectGoogle">Desvincular</a>
-                </div>
-              </div>
-            </template>
+            <span v-else class="psub">Conecte sua conta Google ou escolha uma pasta.</span>
+            <button class="paction" :disabled="gp.busy || ((!gp.hasClient || gp.editClient) && !gp.clientId.trim())" @click="connectGoogle">
+              {{ gp.busy ? 'Aguardando…' : 'Conectar Google' }}
+            </button>
+            <div class="prow">
+              <a class="plink" @click="pickFolder">📁 Pasta do PC</a>
+              <a v-if="gp.hasClient && !gp.editClient" class="plink" @click="gp.editClient = true">Client ID</a>
+              <a v-else class="plink" @click="api.runAction('https://console.cloud.google.com/apis/credentials')">Cloud Console ↗</a>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="psetup">
+            <span class="psub">{{ gp.list.length ? `${gp.list.length} fotos salvas` : 'Conta vinculada! Escolha suas fotos:' }}</span>
+            <button class="paction" :disabled="gp.busy" @click="pickPhotos">{{ gp.busy ? 'Abrindo…' : 'Escolher fotos' }}</button>
+            <div class="prow">
+              <a class="plink" @click="pickFolder">📁 Pasta</a>
+              <a class="plink" @click="gp.editClient = true">Client ID</a>
+              <a class="plink danger" @click="disconnectGoogle">Desvincular</a>
+            </div>
+          </div>
+        </template>
           </template>
         </div>
 

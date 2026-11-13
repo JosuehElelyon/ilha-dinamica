@@ -14,6 +14,16 @@ pub fn run_action(target: String) -> bool {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
+        if t.contains("://") || t.starts_with("ms-") || t.starts_with("mailto:") {
+            use windows::core::{w, HSTRING, PCWSTR};
+            use windows::Win32::UI::Shell::ShellExecuteW;
+            use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+            let url = HSTRING::from(&t);
+            let r = unsafe { ShellExecuteW(None, w!("open"), &url, PCWSTR::null(), PCWSTR::null(), SW_SHOWNORMAL) };
+            if r.0 as isize > 32 {
+                return true;
+            }
+        }
         // "start" resolve programas do PATH, pastas, URLs e protocolos
         crate::util::hidden("cmd.exe")
             .raw_arg(format!("/d /s /c start \"\" \"{t}\""))

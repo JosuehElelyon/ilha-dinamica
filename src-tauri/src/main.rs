@@ -148,6 +148,7 @@ fn main() {
             photos::gphotos_set_client,
             photos::gphotos_connect,
             photos::gphotos_pick,
+            photos::gphotos_pick_folder,
             photos::gphotos_list,
             photos::gphotos_disconnect,
             update::install_update,

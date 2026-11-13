@@ -168,6 +168,7 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
   gphotos_set_client: () => true,
   gphotos_connect: () => {},
   gphotos_pick: () => [],
+  gphotos_pick_folder: () => [],
   gphotos_list: () => [],
   gphotos_disconnect: () => {},
   check_update: () => ({ available: true, version: '2.2.0', current: '2.1.0', notes: '' }),

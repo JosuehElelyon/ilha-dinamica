@@ -25,6 +25,26 @@ fn get_secret(key: &str) -> Option<String> {
     keyring::Entry::new(SERVICE, key).ok()?.get_password().ok().filter(|s| !s.trim().is_empty())
 }
 
+fn resolve_client_id() -> Option<String> {
+    get_secret("client_id").or_else(|| {
+        option_env!("GPHOTOS_CLIENT_ID")
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(String::from)
+    })
+}
+
+fn resolve_client_secret() -> String {
+    get_secret("client_secret")
+        .or_else(|| {
+            option_env!("GPHOTOS_CLIENT_SECRET")
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+        })
+        .unwrap_or_default()
+}
+
 fn set_secret(key: &str, val: &str) -> Result<(), String> {
     let e = keyring::Entry::new(SERVICE, key).map_err(|e| e.to_string())?;
     if val.trim().is_empty() {
@@ -108,8 +128,8 @@ fn url_decode(s: &str) -> String {
 }
 
 async fn refresh_access_token() -> Result<String, String> {
-    let client_id = get_secret("client_id").ok_or("Client ID do Google não configurado")?;
-    let client_secret = get_secret("client_secret").unwrap_or_default();
+    let client_id = resolve_client_id().ok_or("Client ID do Google não configurado")?;
+    let client_secret = resolve_client_secret();
     let refresh_token = get_secret("refresh_token").ok_or("Conta Google não vinculada")?;
 
     let mut params = vec![
@@ -143,7 +163,7 @@ async fn refresh_access_token() -> Result<String, String> {
 pub fn gphotos_status(app: AppHandle) -> GPhotosStatus {
     GPhotosStatus {
         connected: get_secret("refresh_token").is_some(),
-        has_client: get_secret("client_id").is_some(),
+        has_client: resolve_client_id().is_some(),
         count: list_cached_files(&app).len(),
     }
 }
@@ -152,12 +172,53 @@ pub fn gphotos_status(app: AppHandle) -> GPhotosStatus {
 pub fn gphotos_set_client(client_id: String, client_secret: String) -> Result<bool, String> {
     set_secret("client_id", &client_id)?;
     set_secret("client_secret", &client_secret)?;
-    Ok(!client_id.trim().is_empty())
+    Ok(resolve_client_id().is_some())
 }
 
 #[tauri::command]
 pub fn gphotos_list(app: AppHandle) -> Vec<String> {
     read_data_urls(&app)
+}
+
+#[tauri::command]
+pub async fn gphotos_pick_folder(app: AppHandle) -> Result<Vec<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let win = app.get_webview_window("main");
+    if let Some(w) = &win {
+        let _ = w.set_always_on_top(false);
+    }
+    let picked = app.dialog().file().set_title("Escolha a pasta com suas fotos").blocking_pick_folder();
+    if let Some(w) = &win {
+        let _ = w.set_always_on_top(true);
+    }
+    let Some(folder) = picked.and_then(|p| p.into_path().ok()) else {
+        return Ok(read_data_urls(&app));
+    };
+    let dir = photos_dir(&app)?;
+    if let Ok(rd) = std::fs::read_dir(&dir) {
+        for e in rd.flatten() {
+            let _ = std::fs::remove_file(e.path());
+        }
+    }
+    if let Ok(rd) = std::fs::read_dir(folder) {
+        let mut imgs: Vec<PathBuf> = rd
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| {
+                p.is_file()
+                    && p.extension()
+                        .and_then(|s| s.to_str())
+                        .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "jpg" | "jpeg" | "png" | "webp"))
+                        .unwrap_or(false)
+            })
+            .collect();
+        imgs.sort();
+        for (i, src) in imgs.into_iter().take(40).enumerate() {
+            let ext = src.extension().and_then(|s| s.to_str()).unwrap_or("jpg").to_ascii_lowercase();
+            let _ = std::fs::copy(&src, dir.join(format!("local_{i:02}.{ext}")));
+        }
+    }
+    Ok(read_data_urls(&app))
 }
 
 #[tauri::command]
@@ -176,8 +237,8 @@ pub fn gphotos_disconnect(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn gphotos_connect() -> Result<(), String> {
-    let client_id = get_secret("client_id").ok_or("Informe o Client ID do Google Cloud primeiro")?;
-    let client_secret = get_secret("client_secret").unwrap_or_default();
+    let client_id = resolve_client_id().ok_or("Informe o Client ID do Google Cloud primeiro")?;
+    let client_secret = resolve_client_secret();
 
     let listener = TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();

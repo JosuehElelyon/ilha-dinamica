@@ -94,6 +94,7 @@ export const api = {
   gphotosSetClient: (clientId: string, clientSecret: string) => invoke<boolean>('gphotos_set_client', { clientId, clientSecret }),
   gphotosConnect: () => invoke<void>('gphotos_connect'),
   gphotosPick: () => invoke<string[]>('gphotos_pick'),
+  gphotosPickFolder: () => invoke<string[]>('gphotos_pick_folder'),
   gphotosList: () => invoke<string[]>('gphotos_list'),
   gphotosDisconnect: () => invoke<void>('gphotos_disconnect'),
 
