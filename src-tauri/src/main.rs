@@ -13,6 +13,7 @@ mod gitlab;
 mod hover;
 mod logger;
 mod media;
+mod network;
 mod position;
 mod system;
 mod tray;
@@ -143,6 +144,12 @@ fn main() {
             games::steam_info,
             games::steam_set_key,
             games::steam_friends,
+            network::wifi_status,
+            network::wifi_scan,
+            network::wifi_connect,
+            network::wifi_disconnect,
+            network::bt_state,
+            network::bt_toggle_radio,
             update::install_update,
         ])
         .run(tauri::generate_context!())

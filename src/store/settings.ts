@@ -5,7 +5,7 @@ import { DEFAULT_SNIPPETS, type Snippet } from '../lib/snippets'
 
 export type ModuleId =
   | 'home' | 'work' | 'games' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
-  | 'weather' | 'audio' | 'sys' | 'clean' | 'procs'
+  | 'weather' | 'audio' | 'net' | 'sys' | 'clean' | 'procs'
 
 export type HomeCardId = 'stopwatch' | 'media' | 'focus' | 'timer' | 'weather' | 'meeting'
 
@@ -22,7 +22,7 @@ export const DEFAULT_HOME_CARDS: HomeCardId[] = ['stopwatch', 'media', 'focus']
 
 export const MODULES: Record<ModuleId, string> = {
   home: 'INÍCIO', work: 'TRABALHO', games: 'JOGOS', actions: 'AÇÕES', tools: 'FERRAMENTAS', snippets: 'SNIPPETS', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',
-  cal: 'AGENDA', weather: 'CLIMA', audio: 'ÁUDIO', sys: 'SISTEMA', clean: 'LIMPEZA', procs: 'PROCESSOS'
+  cal: 'AGENDA', weather: 'CLIMA', audio: 'ÁUDIO', net: 'REDES', sys: 'SISTEMA', clean: 'LIMPEZA', procs: 'PROCESSOS'
 }
 
 export const ACCENTS = ['#ff8a2b', '#ff4d6d', '#ffd23f', '#34d058', '#2fb8ff', '#8b7bff', '#f0f0f0']

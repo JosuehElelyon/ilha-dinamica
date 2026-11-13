@@ -34,7 +34,18 @@ function center() { island.menuOpen = false; api.resetPosition() }
 
 <template>
   <header :class="{ draggable: !S.locked }" :title="S.locked ? '' : 'Arraste para mover a ilha'" @mousedown="drag" @dblclick="!S.locked && center()">
-    <span class="mono">{{ date }}</span>
+    <span class="left-info">
+      <span class="mono">{{ date }}</span>
+      <button v-if="live.wifi.connected" class="wifi-btn" :title="`Wi-Fi: ${live.wifi.ssid} (${live.wifi.signal}%) — clique para gerenciar redes`"
+              @click.stop="island.tab = 'net'">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+          <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+          <circle cx="12" cy="19.5" r="1" fill="currentColor" />
+        </svg>
+      </button>
+    </span>
     <BlackCat :busy="busy" />
     <span class="right">
       <button v-if="meet?.joinUrl" class="meetbtn" :title="`Entrar em: ${meet.summary}`" @click.stop="api.runAction(meet.joinUrl)">📹 Entrar</button>
@@ -71,6 +82,13 @@ header { position: relative; z-index: 5; display: flex; align-items: center; jus
   padding: 12px 20px 8px; font-size: 11px; color: #c9c9cf; }
 header.draggable { cursor: grab; }
 header.draggable:active { cursor: grabbing; }
+.left-info { display: flex; align-items: center; gap: 7px; }
+.wifi-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 7px; color: #5be39a;
+  background: rgba(91, 227, 154, .12); transition: background .15s, transform .15s;
+}
+.wifi-btn:hover { background: rgba(91, 227, 154, .24); transform: scale(1.06); }
 .right { display: flex; align-items: center; gap: 12px; }
 .clock { font-size: 12px; color: var(--txt); font-weight: 600; }
 .eyes { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }

@@ -164,6 +164,24 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
       mine: [mr(401, 'chore: atualiza Spring Boot 3.5', 'cliente-b/backend', { pipeline: 'failed' }), mr(402, 'docs: C4 do barramento de eventos', 'cliente-b/docs', { pipeline: 'running', draft: true })]
     }
   },
+  wifi_status: () => ({ connected: true, ssid: 'Casa_5G', signal: 88 }),
+  wifi_scan: () => [
+    { ssid: 'Casa_5G', signal: 88, auth: 'WPA2-Personal', connected: true },
+    { ssid: 'Casa_2.4G', signal: 74, auth: 'WPA2-Personal', connected: false },
+    { ssid: 'Vizinho_Fibra', signal: 42, auth: 'WPA2-Personal', connected: false }
+  ],
+  wifi_connect: (a) => `Conectando a ${String(a.ssid)}…`,
+  wifi_disconnect: () => true,
+  bt_state: () => ({
+    available: true,
+    enabled: true,
+    devices: [
+      { id: 'bt-1', name: 'Galaxy Buds2 Pro', connected: true, kind: 'BT' },
+      { id: 'bt-2', name: 'MX Master 3S', connected: true, kind: 'LE' },
+      { id: 'bt-3', name: 'JBL Flip 6', connected: false, kind: 'BT' }
+    ]
+  }),
+  bt_toggle_radio: (a) => !!a.enable,
   check_update: () => ({ available: true, version: '2.2.0', current: '2.1.0', notes: '' }),
   install_update: () => undefined,
   reset_position: () => emit('anchor', { x: 'center', y: 'top' })

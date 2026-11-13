@@ -107,8 +107,15 @@ export const live = reactive({
   vol: null as VolInfo | null,
   devices: null as Devices | null,
   sys: null as SysInfo | null,
-  tempText: ''
+  tempText: '',
+  wifi: { connected: false, ssid: '', signal: 0 }
 })
+
+export async function refreshWifi() {
+  try {
+    live.wifi = await api.wifiStatus()
+  } catch { /* ignora fora do Tauri */ }
+}
 
 /* ---------- cronômetro, foco (pomodoro) e timer ---------- */
 export const FOCO = 25 * 60

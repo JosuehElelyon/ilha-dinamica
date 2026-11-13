@@ -6,7 +6,7 @@ import { api } from './lib/api'
 import { hexHue, hashHue, hueFromImage } from './lib/format'
 import { loadWeather } from './lib/weather'
 import { S, loadSettings, activeModules } from './store/settings'
-import { island, live, now, checkAll, showToast, alertIsland, reminders, remDate, checkUpdate, setAutoUpdateGetter, refreshMeetings, focus } from './store/state'
+import { island, live, now, checkAll, showToast, alertIsland, reminders, remDate, checkUpdate, setAutoUpdateGetter, refreshMeetings, refreshWifi, focus } from './store/state'
 import type { Devices, VolInfo } from './lib/types'
 
 import IslandPill from './components/IslandPill.vue'
@@ -27,6 +27,7 @@ import TimerTab from './components/tabs/TimerTab.vue'
 import CalendarTab from './components/tabs/CalendarTab.vue'
 import WeatherTab from './components/tabs/WeatherTab.vue'
 import AudioTab from './components/tabs/AudioTab.vue'
+import NetworkTab from './components/tabs/NetworkTab.vue'
 import SystemTab from './components/tabs/SystemTab.vue'
 import CleanTab from './components/tabs/CleanTab.vue'
 import ProcessesTab from './components/tabs/ProcessesTab.vue'
@@ -35,7 +36,7 @@ import SettingsTab from './components/tabs/SettingsTab.vue'
 
 const TABS: Record<string, Component> = {
   home: HomeTab, work: WorkTab, games: GamesTab, actions: ActionsTab, tools: ToolsTab, snippets: SnippetsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
-  cal: CalendarTab, weather: WeatherTab, audio: AudioTab, sys: SystemTab, clean: CleanTab,
+  cal: CalendarTab, weather: WeatherTab, audio: AudioTab, net: NetworkTab, sys: SystemTab, clean: CleanTab,
   procs: ProcessesTab, modules: ModulesTab, settings: SettingsTab
 }
 
@@ -189,6 +190,8 @@ onMounted(async () => {
   initGames()
   refreshMeetings(S.icsUrl)
   setInterval(() => refreshMeetings(S.icsUrl), 15 * 60 * 1000)
+  refreshWifi()
+  setInterval(refreshWifi, 15_000)
   // procura atualizações 10 s depois de abrir e a cada 6 horas
   setAutoUpdateGetter(() => S.autoUpdate)
   setTimeout(() => checkUpdate(), 10_000)

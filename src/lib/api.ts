@@ -3,7 +3,7 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 import { listen as tauriListen } from '@tauri-apps/api/event'
 import type {
-  Adapter, Anchor, Friend, Game, SteamInfo, AppData, Clip, MrList, Org, RepoGitStatus, VpnResult, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
+  Adapter, Anchor, BtState, Friend, Game, SteamInfo, AppData, Clip, MrList, Org, RepoGitStatus, VpnResult, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo, WifiNet, WifiStatus
 } from './types'
 import { mock } from './mock'
 
@@ -88,6 +88,14 @@ export const api = {
   steamInfo: () => invoke<SteamInfo>('steam_info'),
   steamSetKey: (key: string) => invoke<boolean>('steam_set_key', { key }),
   steamFriends: (steamid: string) => invoke<Friend[]>('steam_friends', { steamid }),
+
+  // redes (Wi-Fi e Bluetooth)
+  wifiStatus: () => invoke<WifiStatus>('wifi_status'),
+  wifiScan: () => invoke<WifiNet[]>('wifi_scan'),
+  wifiConnect: (ssid: string) => invoke<string>('wifi_connect', { ssid }),
+  wifiDisconnect: () => invoke<boolean>('wifi_disconnect'),
+  btState: () => invoke<BtState>('bt_state'),
+  btToggleRadio: (enable: boolean) => invoke<boolean>('bt_toggle_radio', { enable }),
 
   // eventos vindos do Rust
   onHover: (cb: (inside: boolean) => void) => on('hover', cb),
