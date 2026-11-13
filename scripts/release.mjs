@@ -1,5 +1,5 @@
-// Publica uma nova versão: atualiza o número em todos os arquivos, faz commit,
-// cria a tag e envia. O GitHub Actions compila e as ilhas instaladas se atualizam.
+// Publica uma nova versão: atualiza o número em todos os arquivos, faz commit e envia.
+// O GitHub Actions cria a tag, compila e publica; as ilhas instaladas se atualizam.
 // Uso: npm run release 2.1.1
 import { readFileSync, writeFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
@@ -20,7 +20,5 @@ writeFileSync(cargo, readFileSync(cargo, 'utf8').replace(/^version = ".*"$/m, `v
 sh('npm install --package-lock-only --no-audit --no-fund')
 sh(`git add package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml`)
 sh(`git commit -m "Versão ${v}"`)
-sh(`git tag v${v}`)
 sh('git push')
-sh(`git push origin v${v}`)
 console.log(`\nVersão ${v} enviada! Acompanhe em https://github.com/JosuehElelyon/ilha-dinamica/actions`)

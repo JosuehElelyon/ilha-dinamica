@@ -31,7 +31,7 @@ A partir da versão 2.1 a ilha **se atualiza sozinha**: ela verifica ao abrir e 
 ```powershell
 npm run release 2.1.1
 ```
-Isso atualiza o número da versão, cria a tag e envia ao GitHub. O GitHub Actions compila no Windows, assina e publica a Release; as ilhas instaladas recebem a atualização.
+Isso atualiza o número da versão e envia ao GitHub. O GitHub Actions cria a tag, compila no Windows, assina e publica a Release; as ilhas instaladas recebem a atualização.
 > Requer o segredo `TAURI_SIGNING_PRIVATE_KEY` no repositório (Settings → Secrets and variables → Actions).
 
 Se a ilha não abrir, veja o log em `%LOCALAPPDATA%\com.josueh.ilhadinamica\ilha.log`.

@@ -1,10 +1,13 @@
 # Compila a Ilha Dinâmica no Windows e publica o instalador + atualização automática
-# nas Releases do GitHub. Roda ao enviar uma tag vX.Y.Z (ex.: npm run release 2.1.1)
-# ou manualmente pela aba Actions.
+# nas Releases do GitHub. Roda quando a versão em src-tauri/tauri.conf.json muda no
+# main (ex.: npm run release 2.1.1), ao enviar uma tag vX.Y.Z, ou manualmente na aba Actions.
+# Se a versão atual já foi publicada, não faz nada.
 name: Release
 
 on:
   push:
+    branches: [main]
+    paths: ['src-tauri/tauri.conf.json', '.github/workflows/release.yml']
     tags: ['v*']
   workflow_dispatch:
 
@@ -17,20 +20,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Versão já publicada?
+        id: ver
+        shell: bash
+        run: |
+          V=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          echo "Versão: $V"
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref_type }}" != "tag" ] && \
+             git ls-remote --exit-code --tags origin "refs/tags/v$V" >/dev/null; then
+            echo "v$V já existe — nada a fazer."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.ver.outputs.skip != 'true'
         with:
           node-version: 22
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
+        if: steps.ver.outputs.skip != 'true'
 
       - uses: swatinem/rust-cache@v2
+        if: steps.ver.outputs.skip != 'true'
         with:
           workspaces: src-tauri -> target
 
       - run: npm ci
+        if: steps.ver.outputs.skip != 'true'
 
       - uses: tauri-apps/tauri-action@v0
+        if: steps.ver.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
