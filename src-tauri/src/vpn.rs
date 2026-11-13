@@ -206,7 +206,7 @@ pub fn vpn_has_passwords(orgs: Vec<String>) -> Vec<String> {
 
 /* ---------------- OpenVPN Connect (v3) ---------------- */
 
-/// Acha o id do perfil no OpenVPN Connect pelo nome ou servidor (ex.: vpnclient.enap.gov.br)
+/// Acha o id do perfil no OpenVPN Connect pelo nome ou servidor (ex.: vpn.exemplo.com)
 fn ovpn_connect_profile_id(exe: &PathBuf, wanted: &str) -> Option<String> {
     let out = crate::util::hidden(&exe.to_string_lossy()).arg("--list-profiles").output().ok()?;
     let text = String::from_utf8_lossy(&out.stdout);

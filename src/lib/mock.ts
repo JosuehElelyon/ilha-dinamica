@@ -20,11 +20,11 @@ const today = new Date().toISOString().slice(0, 10)
 let adapters = [
   { name: 'Wi-Fi', desc: 'Intel(R) Wi-Fi 6E AX211', up: true, ip: '192.168.0.12' },
   { name: 'Ethernet 2', desc: 'Fortinet SSL VPN Virtual Ethernet Adapter', up: true, ip: '10.70.4.21' },
-  { name: 'FNDE', desc: 'WAN Miniport (IKEv2)', up: false, ip: '' },
+  { name: 'Empresa A', desc: 'WAN Miniport (IKEv2)', up: false, ip: '' },
   { name: 'Ethernet 3', desc: 'Cisco AnyConnect Secure Mobility Client Virtual Miniport Adapter', up: false, ip: '' }
 ]
 const mr = (id: number, title: string, project: string, extra: object = {}) => ({
-  id, iid: id % 1000, title, project, url: 'https://gitlab.example.gov.br/' + project + '/-/merge_requests/' + id,
+  id, iid: id % 1000, title, project, url: 'https://gitlab.example.com/' + project + '/-/merge_requests/' + id,
   author: 'Maria Souza', updated: new Date(Date.now() - id * 6e5).toISOString(), draft: false, conflicts: false,
   pipeline: '', merge_status: 'mergeable', ...extra
 })
@@ -46,9 +46,8 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
     notes: '', platform: 'windows',
     settings: {
       orgs: [
-        { id: 'enap', name: 'ENAP', color: '#2fb8ff', vpn: { type: 'openvpnconnect', name: 'vpnclient.enap.gov.br', user: '', adapter: 'Fortinet', connect: '', disconnect: '' }, gitlab: { url: 'gitlab.enap.gov.br', insecure: false } },
-        { id: 'fnde', name: 'FNDE', color: '#34d058', vpn: { type: 'windows', name: 'FNDE', user: '', adapter: '', connect: '', disconnect: '' }, gitlab: { url: 'gitlab.fnde.gov.br', insecure: false } },
-        { id: 'basa', name: 'BASA', color: '#ffd23f', vpn: { type: 'cisco', name: 'vpn.basa.com.br/parceiros', user: '', adapter: 'Cisco', connect: '', disconnect: '' }, gitlab: { url: '', insecure: false } }
+        { id: 'org1', name: 'Empresa A', color: '#2fb8ff', vpn: { type: 'openvpnconnect', name: 'vpn.exemplo.com', user: '', adapter: 'Fortinet', connect: '', disconnect: '' }, gitlab: { url: 'gitlab.exemplo.com', insecure: false } },
+        { id: 'org2', name: 'Cliente B', color: '#34d058', vpn: { type: 'windows', name: 'Empresa A', user: '', adapter: '', connect: '', disconnect: '' }, gitlab: { url: 'git.cliente.com', insecure: false } }
       ]
     }, isAdmin: false, autostart: false, version: '2.0.0',
     protectedNames: ['svchost', 'dwm', 'msmpeng', 'system'], selfName: 'ilha-dinamica', ownPids: [],
@@ -152,17 +151,17 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
     { steamid: '5', name: 'Pedro H.', avatar: '', state: 1, game: '', gameid: '', lobby: '' }
   ],
   gitlab_set_token: (a) => !!String(a.token).trim(),
-  gitlab_has_tokens: () => ['enap', 'fnde'],
+  gitlab_has_tokens: () => ['org1', 'org2'],
   gitlab_mrs: (a) => {
-    if (a.org === 'enap') return {
-      user: 'josueh',
-      review: [mr(101, 'feat: integra SSO gov.br no portal de cursos', 'enap/escola-virtual/portal'), mr(102, 'fix: timeout na emissão de certificados', 'enap/certificados/api')],
-      mine: [mr(201, 'refactor: separa módulo de matrículas (ADR-014)', 'enap/escola-virtual/api', { pipeline: 'success' })]
+    if (a.org === 'org1') return {
+      user: 'usuario',
+      review: [mr(101, 'feat: integra SSO no portal', 'empresa-a/portal'), mr(102, 'fix: timeout na emissão de relatórios', 'empresa-a/api')],
+      mine: [mr(201, 'refactor: separa módulo de cadastros (ADR-014)', 'empresa-a/api', { pipeline: 'success' })]
     }
     return {
-      user: 'josueh',
-      review: [mr(301, 'feat: novo cálculo de repasse PNAE', 'fnde/sigpc/repasse')],
-      mine: [mr(401, 'chore: atualiza Spring Boot 3.5', 'fnde/sigpc/backend', { pipeline: 'failed' }), mr(402, 'docs: C4 do barramento de eventos', 'fnde/arquitetura/docs', { pipeline: 'running', draft: true })]
+      user: 'usuario',
+      review: [mr(301, 'feat: novo cálculo de repasse', 'cliente-b/repasse')],
+      mine: [mr(401, 'chore: atualiza Spring Boot 3.5', 'cliente-b/backend', { pipeline: 'failed' }), mr(402, 'docs: C4 do barramento de eventos', 'cliente-b/docs', { pipeline: 'running', draft: true })]
     }
   },
   gphotos_status: () => ({ connected: false, has_client: false, count: 0 }),

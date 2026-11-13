@@ -1,4 +1,4 @@
-// Trabalho: estado das VPNs e Merge Requests de cada órgão (ENAP, FNDE, BASA…)
+// Trabalho: estado das VPNs e Merge Requests de cada órgão/cliente
 import { reactive } from 'vue'
 import { api } from '../lib/api'
 import type { Adapter, MrList, Org } from '../lib/types'
