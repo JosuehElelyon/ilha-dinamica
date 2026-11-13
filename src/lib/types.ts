@@ -26,6 +26,23 @@ export interface Reminder { id: number; date: string; time: string; text: string
 
 export interface Action { id: number; emoji: string; name: string; type: 'url' | 'file' | 'folder' | 'cmd'; target: string }
 
+export interface Adapter { name: string; desc: string; up: boolean; ip: string }
+
+export type VpnType = 'windows' | 'openvpnconnect' | 'openvpn' | 'wireguard' | 'cisco' | 'forti' | 'globalprotect' | 'custom' | 'none'
+export interface Org {
+  id: string
+  name: string
+  color: string
+  vpn: { type: VpnType; name: string; user: string; adapter: string; connect: string; disconnect: string }
+  gitlab: { url: string; insecure: boolean }
+}
+export interface Mr {
+  id: number; iid: number; title: string; project: string; url: string; author: string
+  updated: string; draft: boolean; conflicts: boolean; pipeline: string; merge_status: string
+}
+export interface MrList { user: string; review: Mr[]; mine: Mr[] }
+export interface VpnResult { ok: boolean; mode: 'cmd' | 'app'; msg: string }
+
 export interface Anchor { x: 'left' | 'center' | 'right'; y: 'top' | 'bottom' }
 
 export interface AppData {

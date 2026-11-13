@@ -7,6 +7,7 @@ mod audio;
 mod clean;
 mod clipboard;
 mod data;
+mod gitlab;
 mod hover;
 mod logger;
 mod media;
@@ -15,6 +16,7 @@ mod system;
 mod tray;
 mod update;
 mod util;
+mod vpn;
 
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
@@ -70,6 +72,7 @@ fn main() {
             media::start(handle.clone());
             audio::start(handle.clone());
             system::start(handle.clone());
+            vpn::start(handle.clone());
 
             // ao arrastar: mantém dentro da tela, salva a posição e ajusta a âncora;
             // se a resolução / escala mudar, volta para onde estava
@@ -114,6 +117,15 @@ fn main() {
             actions::relaunch_admin,
             actions::quit_app,
             update::check_update,
+            vpn::list_adapters,
+            vpn::vpn_connect,
+            vpn::vpn_disconnect,
+            vpn::probe_host,
+            vpn::vpn_set_password,
+            vpn::vpn_has_passwords,
+            gitlab::gitlab_set_token,
+            gitlab::gitlab_has_tokens,
+            gitlab::gitlab_mrs,
             update::install_update,
         ])
         .run(tauri::generate_context!())

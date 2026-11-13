@@ -15,6 +15,8 @@ import NavBar from './components/NavBar.vue'
 import HomeTab from './components/tabs/HomeTab.vue'
 import ActionsTab from './components/tabs/ActionsTab.vue'
 import ToolsTab from './components/tabs/ToolsTab.vue'
+import WorkTab from './components/tabs/WorkTab.vue'
+import { initWork } from './store/work'
 import SnippetsTab from './components/tabs/SnippetsTab.vue'
 import ClipsTab from './components/tabs/ClipsTab.vue'
 import NotesTab from './components/tabs/NotesTab.vue'
@@ -29,7 +31,7 @@ import ModulesTab from './components/tabs/ModulesTab.vue'
 import SettingsTab from './components/tabs/SettingsTab.vue'
 
 const TABS: Record<string, Component> = {
-  home: HomeTab, actions: ActionsTab, tools: ToolsTab, snippets: SnippetsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
+  home: HomeTab, work: WorkTab, actions: ActionsTab, tools: ToolsTab, snippets: SnippetsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
   cal: CalendarTab, weather: WeatherTab, audio: AudioTab, sys: SystemTab, clean: CleanTab,
   procs: ProcessesTab, modules: ModulesTab, settings: SettingsTab
 }
@@ -170,6 +172,7 @@ onMounted(async () => {
   ready.value = true
   loadWeather()
   setInterval(loadWeather, 30 * 60 * 1000)
+  initWork()
   // procura atualizações 10 s depois de abrir e a cada 6 horas
   setAutoUpdateGetter(() => S.autoUpdate)
   setTimeout(() => checkUpdate(), 10_000)

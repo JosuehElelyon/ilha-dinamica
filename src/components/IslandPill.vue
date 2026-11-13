@@ -3,6 +3,11 @@
 import { computed } from 'vue'
 import { fmt } from '../lib/format'
 import { island, live, now, focus, focusLeft, timer, timerLeft, stopwatch, swElapsed } from '../store/state'
+import { S } from '../store/settings'
+import { st } from '../store/work'
+
+// órgãos com VPN ligada aparecem como etiquetas coloridas na pílula
+const vpns = computed(() => S.orgs.filter(o => st(o.id).vpnUp))
 
 const view = computed(() => {
   const hora = new Date(now.value).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -25,6 +30,7 @@ const view = computed(() => {
     <span class="ptext">{{ view.text }}</span>
     <span v-if="view.progress !== null" class="pprog"><b :style="{ width: view.progress + '%' }" /></span>
     <span v-if="view.dot" class="dot" :class="view.dot" />
+    <span v-for="o in vpns" v-show="!island.toast" :key="o.id" class="vpn" :style="{ color: o.color, borderColor: o.color }" :title="'VPN ' + o.name + ' ligada'">{{ o.name }}</span>
   </div>
 </template>
 
@@ -37,6 +43,7 @@ const view = computed(() => {
 .pimg { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
 .pprog { width: 70px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.15); overflow: hidden; }
 .pprog b { display: block; height: 100%; background: #fff; border-radius: 3px; transition: width .2s; }
+.vpn { font-size: 9.5px; font-weight: 800; letter-spacing: .04em; padding: 1px 5px; border: 1px solid; border-radius: 6px; line-height: 1.3; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: #34d058; }
 .dot.focus { background: #8b7bff; }
 .dot.timer { background: var(--accent); }

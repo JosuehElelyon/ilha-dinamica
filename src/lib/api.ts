@@ -3,7 +3,7 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 import { listen as tauriListen } from '@tauri-apps/api/event'
 import type {
-  Anchor, AppData, Clip, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
+  Adapter, Anchor, AppData, Clip, MrList, Org, VpnResult, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
 } from './types'
 import { mock } from './mock'
 
@@ -68,6 +68,17 @@ export const api = {
   checkUpdate: () => invoke<{ available: boolean; version: string; current: string; notes: string }>('check_update'),
   installUpdate: () => invoke<void>('install_update'),
 
+  // trabalho: VPNs e GitLab
+  listAdapters: () => invoke<Adapter[]>('list_adapters'),
+  vpnConnect: (org: string, vpn: Org['vpn']) => invoke<VpnResult>('vpn_connect', { profile: { ...vpn, org } }),
+  vpnDisconnect: (org: string, vpn: Org['vpn']) => invoke<VpnResult>('vpn_disconnect', { profile: { ...vpn, org } }),
+  vpnSetPassword: (org: string, password: string) => invoke<boolean>('vpn_set_password', { org, password }),
+  vpnHasPasswords: (orgs: string[]) => invoke<string[]>('vpn_has_passwords', { orgs }),
+  probeHost: (host: string) => invoke<{ ok: boolean; ms: number }>('probe_host', { host }),
+  gitlabSetToken: (org: string, token: string) => invoke<boolean>('gitlab_set_token', { org, token }),
+  gitlabHasTokens: (orgs: string[]) => invoke<string[]>('gitlab_has_tokens', { orgs }),
+  gitlabMrs: (org: string, url: string, insecure: boolean) => invoke<MrList>('gitlab_mrs', { org, url, insecure }),
+
   // eventos vindos do Rust
   onHover: (cb: (inside: boolean) => void) => on('hover', cb),
   onToggle: (cb: () => void) => on('toggle', cb),
@@ -77,5 +88,6 @@ export const api = {
   onDevices: (cb: (d: Devices) => void) => on('devices', cb),
   onSys: (cb: (s: SysInfo) => void) => on('sys', cb),
   onAnchor: (cb: (a: Anchor) => void) => on('anchor', cb),
+  onAdapters: (cb: (a: Adapter[]) => void) => on('adapters', cb),
   onAutostart: (cb: (on: boolean) => void) => on('autostart', cb)
 }

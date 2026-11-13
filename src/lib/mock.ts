@@ -17,6 +17,17 @@ let devices = {
   ]
 }
 const today = new Date().toISOString().slice(0, 10)
+let adapters = [
+  { name: 'Wi-Fi', desc: 'Intel(R) Wi-Fi 6E AX211', up: true, ip: '192.168.0.12' },
+  { name: 'Ethernet 2', desc: 'Fortinet SSL VPN Virtual Ethernet Adapter', up: true, ip: '10.70.4.21' },
+  { name: 'FNDE', desc: 'WAN Miniport (IKEv2)', up: false, ip: '' },
+  { name: 'Ethernet 3', desc: 'Cisco AnyConnect Secure Mobility Client Virtual Miniport Adapter', up: false, ip: '' }
+]
+const mr = (id: number, title: string, project: string, extra: object = {}) => ({
+  id, iid: id % 1000, title, project, url: 'https://gitlab.example.gov.br/' + project + '/-/merge_requests/' + id,
+  author: 'Maria Souza', updated: new Date(Date.now() - id * 6e5).toISOString(), draft: false, conflicts: false,
+  pipeline: '', merge_status: 'mergeable', ...extra
+})
 const coverSvg = 'data:image/svg+xml;base64,' + btoa(
   '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#1e3c8c"/><circle cx="60" cy="60" r="40" fill="#f07828"/></svg>'
 )
@@ -32,7 +43,14 @@ const procs = () => [
 
 const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
   get_data: () => ({
-    notes: '', settings: {}, platform: 'windows', isAdmin: false, autostart: false, version: '2.0.0',
+    notes: '', platform: 'windows',
+    settings: {
+      orgs: [
+        { id: 'enap', name: 'ENAP', color: '#2fb8ff', vpn: { type: 'openvpnconnect', name: 'vpnclient.enap.gov.br', user: '', adapter: 'Fortinet', connect: '', disconnect: '' }, gitlab: { url: 'gitlab.enap.gov.br', insecure: false } },
+        { id: 'fnde', name: 'FNDE', color: '#34d058', vpn: { type: 'windows', name: 'FNDE', user: '', adapter: '', connect: '', disconnect: '' }, gitlab: { url: 'gitlab.fnde.gov.br', insecure: false } },
+        { id: 'basa', name: 'BASA', color: '#ffd23f', vpn: { type: 'cisco', name: 'vpn.basa.com.br/parceiros', user: '', adapter: 'Cisco', connect: '', disconnect: '' }, gitlab: { url: '', insecure: false } }
+      ]
+    }, isAdmin: false, autostart: false, version: '2.0.0',
     protectedNames: ['svchost', 'dwm', 'msmpeng', 'system'], selfName: 'ilha-dinamica', ownPids: [],
     reminders: [
       { id: 1, date: today, time: '23:30', text: 'Ligar para a Amanda', fired: false },
@@ -76,6 +94,36 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
   set_autostart: (a) => a.enabled,
   pick_path: () => null,
   relaunch_admin: () => false,
+  list_adapters: () => adapters,
+  vpn_connect: (a) => {
+    const p = a.profile as { type: string; name: string }
+    adapters = adapters.map(x => (p.type === 'windows' && x.name === p.name) || (p.type === 'cisco' && x.desc.includes('Cisco')) ? { ...x, up: true, ip: '10.9.0.5' } : x)
+    setTimeout(() => emit('adapters', adapters), 300)
+    return { ok: true, mode: p.type === 'cisco' ? 'app' : 'cmd', msg: p.type === 'cisco' ? 'Abrimos o Cisco Secure Client para você conectar' : '' }
+  },
+  vpn_disconnect: (a) => {
+    const p = a.profile as { type: string; name: string }
+    adapters = adapters.map(x => (p.type === 'windows' && x.name === p.name) || (p.type === 'forti' && x.desc.includes('Fortinet')) || (p.type === 'cisco' && x.desc.includes('Cisco')) ? { ...x, up: false, ip: '' } : x)
+    setTimeout(() => emit('adapters', adapters), 300)
+    return { ok: true, mode: 'cmd', msg: '' }
+  },
+  probe_host: () => ({ ok: true, ms: 38 }),
+  vpn_set_password: (a) => !!a.password,
+  vpn_has_passwords: () => [],
+  gitlab_set_token: (a) => !!String(a.token).trim(),
+  gitlab_has_tokens: () => ['enap', 'fnde'],
+  gitlab_mrs: (a) => {
+    if (a.org === 'enap') return {
+      user: 'josueh',
+      review: [mr(101, 'feat: integra SSO gov.br no portal de cursos', 'enap/escola-virtual/portal'), mr(102, 'fix: timeout na emissão de certificados', 'enap/certificados/api')],
+      mine: [mr(201, 'refactor: separa módulo de matrículas (ADR-014)', 'enap/escola-virtual/api', { pipeline: 'success' })]
+    }
+    return {
+      user: 'josueh',
+      review: [mr(301, 'feat: novo cálculo de repasse PNAE', 'fnde/sigpc/repasse')],
+      mine: [mr(401, 'chore: atualiza Spring Boot 3.5', 'fnde/sigpc/backend', { pipeline: 'failed' }), mr(402, 'docs: C4 do barramento de eventos', 'fnde/arquitetura/docs', { pipeline: 'running', draft: true })]
+    }
+  },
   check_update: () => ({ available: true, version: '2.2.0', current: '2.1.0', notes: '' }),
   install_update: () => undefined,
   reset_position: () => emit('anchor', { x: 'center', y: 'top' })

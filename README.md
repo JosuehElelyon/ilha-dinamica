@@ -6,6 +6,10 @@ Feita com **Tauri 2** — backend em **Rust**, interface em **Vue 3 + TypeScript
 
 ## Recursos
 - **Início**: cronômetro, música tocando agora com a **capa do álbum** e controles, e Pomodoro (25 + 5 min).
+- **Trabalho**: um cartão por órgão/cliente (ENAP, FNDE, BASA… dá para adicionar e remover) com:
+  - **VPN com liga/desliga** — OpenVPN Connect, Cisco Secure Client/AnyConnect (conecta sozinho com a senha salva no Gerenciador de Credenciais), FortiClient, GlobalProtect, VPN do Windows, OpenVPN GUI, WireGuard ou comandos próprios. O status vem da placa de rede, então funciona com qualquer cliente; opção "Uma VPN por vez".
+  - **Merge Requests do GitLab** — para revisar e os seus, com status do pipeline e conflitos. Avisa quando pedem sua revisão ou um pipeline falha. O token fica no Gerenciador de Credenciais do Windows.
+  - Etiquetas na pílula mostram quais VPNs estão ligadas.
 - **Ações**: seus atalhos para sites, programas, pastas e comandos (`calc`, `ms-settings:`…). Dá para criar, editar e remover.
 - **Ferramentas**: JSON (formatar/validar/minificar), JWT (header, payload e validade), Base64, URL, timestamp ↔ data, UUID, SHA-256/1/512, conversão de case e contagem. No **Clips**, o que você copia é reconhecido (JWT, JSON, timestamp…) e aparece um botão para abrir direto na ferramenta.
 - **Snippets**: biblioteca de trechos (Git/GitLab, kubectl, Docker, SQL, ADR, descrição de MR, C4) com busca, categorias e variáveis `{assim}` preenchidas na hora de copiar. Crie, edite e apague os seus.
@@ -81,6 +85,8 @@ src-tauri/           backend (Rust)
   src/clean.rs       limpeza, Lixeira, memória e DNS
   src/actions.rs     ações, seletor de arquivos, notificações, admin
   src/update.rs      atualização automática
+  src/vpn.rs         VPNs: placas de rede, ligar/desligar, teste de acesso
+  src/gitlab.rs      Merge Requests (token no Gerenciador de Credenciais)
   src/logger.rs      log de erros (ilha.log)
 .github/workflows/ compilação e publicação automática no Windows
 ```

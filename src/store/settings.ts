@@ -1,14 +1,14 @@
 import { reactive } from 'vue'
 import { api } from '../lib/api'
-import type { Action } from '../lib/types'
+import type { Action, Org } from '../lib/types'
 import { DEFAULT_SNIPPETS, type Snippet } from '../lib/snippets'
 
 export type ModuleId =
-  | 'home' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
+  | 'home' | 'work' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
   | 'weather' | 'audio' | 'sys' | 'clean' | 'procs'
 
 export const MODULES: Record<ModuleId, string> = {
-  home: 'INÍCIO', actions: 'AÇÕES', tools: 'FERRAMENTAS', snippets: 'SNIPPETS', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',
+  home: 'INÍCIO', work: 'TRABALHO', actions: 'AÇÕES', tools: 'FERRAMENTAS', snippets: 'SNIPPETS', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',
   cal: 'AGENDA', weather: 'CLIMA', audio: 'ÁUDIO', sys: 'SISTEMA', clean: 'LIMPEZA', procs: 'PROCESSOS'
 }
 
@@ -21,6 +21,14 @@ export const DEFAULT_ACTIONS: Action[] = [
   { id: 4, emoji: '🧮', name: 'Calculadora', type: 'cmd', target: 'calc' },
   { id: 5, emoji: '⚙️', name: 'Config.', type: 'cmd', target: 'ms-settings:' }
 ]
+
+export function newOrg(id: string, name: string, color: string, vpn: Partial<Org['vpn']> = {}): Org {
+  return {
+    id, name, color,
+    vpn: { type: 'none', name: '', user: '', adapter: '', connect: '', disconnect: '', ...vpn },
+    gitlab: { url: '', insecure: false }
+  }
+}
 
 export interface Settings {
   accent: string
@@ -37,6 +45,8 @@ export interface Settings {
   locked: boolean
   autoUpdate: boolean
   snippets: Snippet[]
+  orgs: Org[]
+  vpnExclusive: boolean
 }
 
 const DEFAULTS: Settings = {
@@ -53,7 +63,13 @@ const DEFAULTS: Settings = {
   procSort: 'm',
   locked: false,
   autoUpdate: true,
-  snippets: DEFAULT_SNIPPETS
+  snippets: DEFAULT_SNIPPETS,
+  orgs: [
+    newOrg('enap', 'ENAP', '#2fb8ff', { type: 'openvpnconnect', name: 'vpnclient.enap.gov.br', adapter: 'OpenVPN' }),
+    newOrg('fnde', 'FNDE', '#34d058'),
+    newOrg('basa', 'BASA', '#ffd23f', { type: 'cisco', name: 'vpn.basa.com.br/parceiros', adapter: 'Cisco' })
+  ],
+  vpnExclusive: false
 }
 
 export const S = reactive<Settings>(structuredClone(DEFAULTS))
@@ -81,6 +97,7 @@ export function loadSettings(saved: Record<string, unknown>) {
   if (!Array.isArray(S.actions)) S.actions = DEFAULT_ACTIONS
   if (!Array.isArray(S.cleanSel)) S.cleanSel = DEFAULTS.cleanSel
   if (!Array.isArray(S.snippets)) S.snippets = DEFAULT_SNIPPETS
+  if (!Array.isArray(S.orgs)) S.orgs = structuredClone(DEFAULTS.orgs)
 }
 
 export const activeModules = () => S.modules.filter(m => !S.modulesOff.includes(m))
