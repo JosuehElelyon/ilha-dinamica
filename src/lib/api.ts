@@ -3,7 +3,7 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 import { listen as tauriListen } from '@tauri-apps/api/event'
 import type {
-  Adapter, Anchor, Friend, Game, SteamInfo, AppData, Clip, MrList, Org, RepoGitStatus, VpnResult, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
+  Adapter, Anchor, Friend, Game, GPhotosStatus, SteamInfo, AppData, Clip, MrList, Org, RepoGitStatus, VpnResult, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
 } from './types'
 import { mock } from './mock'
 
@@ -88,6 +88,14 @@ export const api = {
   steamInfo: () => invoke<SteamInfo>('steam_info'),
   steamSetKey: (key: string) => invoke<boolean>('steam_set_key', { key }),
   steamFriends: (steamid: string) => invoke<Friend[]>('steam_friends', { steamid }),
+
+  // google fotos
+  gphotosStatus: () => invoke<GPhotosStatus>('gphotos_status'),
+  gphotosSetClient: (clientId: string, clientSecret: string) => invoke<boolean>('gphotos_set_client', { clientId, clientSecret }),
+  gphotosConnect: () => invoke<void>('gphotos_connect'),
+  gphotosPick: () => invoke<string[]>('gphotos_pick'),
+  gphotosList: () => invoke<string[]>('gphotos_list'),
+  gphotosDisconnect: () => invoke<void>('gphotos_disconnect'),
 
   // eventos vindos do Rust
   onHover: (cb: (inside: boolean) => void) => on('hover', cb),

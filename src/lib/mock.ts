@@ -165,6 +165,12 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
       mine: [mr(401, 'chore: atualiza Spring Boot 3.5', 'fnde/sigpc/backend', { pipeline: 'failed' }), mr(402, 'docs: C4 do barramento de eventos', 'fnde/arquitetura/docs', { pipeline: 'running', draft: true })]
     }
   },
+  gphotos_status: () => ({ connected: false, has_client: false, count: 0 }),
+  gphotos_set_client: () => true,
+  gphotos_connect: () => {},
+  gphotos_pick: () => [],
+  gphotos_list: () => [],
+  gphotos_disconnect: () => {},
   check_update: () => ({ available: true, version: '2.2.0', current: '2.1.0', notes: '' }),
   install_update: () => undefined,
   reset_position: () => emit('anchor', { x: 'center', y: 'top' })

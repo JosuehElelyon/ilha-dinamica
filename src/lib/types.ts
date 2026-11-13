@@ -60,6 +60,7 @@ export interface VpnResult { ok: boolean; mode: 'cmd' | 'app'; msg: string }
 export interface Game { id: string; name: string; source: 'steam' | 'epic' | 'gog'; launch: string; image: string; appid: number; last_played: number; size: number }
 export interface SteamInfo { installed: boolean; steamid: string; persona: string; has_key: boolean }
 export interface Friend { steamid: string; name: string; avatar: string; state: number; game: string; gameid: string; lobby: string }
+export interface GPhotosStatus { connected: boolean; has_client: boolean; count: number }
 
 export interface Anchor { x: 'left' | 'center' | 'right'; y: 'top' | 'bottom' }
 
