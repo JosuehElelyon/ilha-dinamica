@@ -24,7 +24,7 @@ function togglePlus() {
 </template>
 
 <style scoped>
-nav { position: relative; display: flex; justify-content: center; align-items: center; gap: 3px; padding: 10px 12px 11px; }
+nav { position: relative; display: flex; justify-content: center; align-items: center; gap: 3px; padding: 10px 12px 12px; }
 .tabs { display: flex; gap: 3px; }
 .tab-btn { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 9px; border-radius: 15px;
   color: #a9a9b2; transition: background .2s, color .2s; }

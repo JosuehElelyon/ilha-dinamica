@@ -17,11 +17,18 @@ const editMode = ref(false)
 const availableToAdd = computed(() =>
   (Object.keys(HOME_CARDS) as HomeCardId[]).filter(id => !S.homeCards.includes(id))
 )
-const gridStyle = computed(() => ({
-  gridTemplateColumns: S.homeCards
-    .map(id => (id === 'media' ? 'minmax(230px, 1.85fr)' : 'minmax(160px, 1fr)'))
-    .join(' ')
-}))
+const gridStyle = computed(() => {
+  const scroll = S.homeCards.length > 3
+  return {
+    gridTemplateColumns: S.homeCards
+      .map(id =>
+        id === 'media'
+          ? (scroll ? 'minmax(230px, 1.5fr)' : 'minmax(0, 1.5fr)')
+          : (scroll ? 'minmax(165px, 1fr)' : 'minmax(0, 1fr)')
+      )
+      .join(' ')
+  }
+})
 
 function moveCard(idx: number, delta: number) {
   const to = idx + delta
@@ -274,7 +281,7 @@ const nextMeetToday = computed(() => {
 <style scoped>
 .home-wrap { position: relative; display: flex; flex-direction: column; gap: 6px; height: 100%; }
 .edit-toggle {
-  position: absolute; top: -6px; right: 2px; z-index: 15; padding: 2px 8px; border-radius: 999px;
+  position: absolute; top: -11px; right: 2px; z-index: 15; padding: 2px 8px; border-radius: 999px;
   background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); color: var(--mute); font-size: 10.5px; font-weight: 600;
 }
 .edit-toggle:hover, .edit-toggle.active { background: var(--accent); border-color: transparent; color: #111; }
