@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { api } from '../lib/api'
 import { DIAS, MESES, pad } from '../lib/format'
 import { island, live, now, stopwatch, focus, timer } from '../store/state'
+import { S, save } from '../store/settings'
 
 const emit = defineEmits<{ pin: [boolean] }>()
 
@@ -18,10 +19,19 @@ async function toggleAutostart(e: Event) {
   island.autostart = await api.setAutostart((e.target as HTMLInputElement).checked)
 }
 function open(tab: 'settings') { island.menuOpen = false; island.tab = tab }
+
+// segurar a barra do topo e arrastar move a ilha pela tela
+function drag(e: MouseEvent) {
+  if (e.button !== 0 || S.locked) return
+  if ((e.target as HTMLElement).closest('button, input, label, .menu')) return
+  island.menuOpen = false
+  api.startDrag()
+}
+function center() { island.menuOpen = false; api.resetPosition() }
 </script>
 
 <template>
-  <header>
+  <header :class="{ draggable: !S.locked }" :title="S.locked ? '' : 'Arraste para mover a ilha'" @mousedown="drag" @dblclick="!S.locked && center()">
     <span class="mono">{{ date }}</span>
     <span class="eyes" :class="{ busy }"><i /><i /></span>
     <span class="right">
@@ -32,6 +42,8 @@ function open(tab: 'settings') { island.menuOpen = false; island.tab = tab }
       <button @click="open('settings')">🎨 Personalizar…</button>
       <label><input type="checkbox" :checked="island.autostart" @change="toggleAutostart"> Iniciar com o Windows</label>
       <label><input type="checkbox" :checked="island.pinned" @change="emit('pin', ($event.target as HTMLInputElement).checked)"> Manter aberta</label>
+      <label><input type="checkbox" :checked="S.locked" @change="save('locked', ($event.target as HTMLInputElement).checked)"> Travar posição</label>
+      <button @click="center">📍 Voltar ao centro do topo</button>
       <span v-if="island.isAdmin" class="note">🛡️ Rodando como administrador</span>
       <button v-else @click="island.menuOpen = false; api.relaunchAdmin()">🛡️ Reiniciar como administrador</button>
       <button class="danger" @click="api.quit()">Sair</button>
@@ -42,6 +54,8 @@ function open(tab: 'settings') { island.menuOpen = false; island.tab = tab }
 <style scoped>
 header { position: relative; z-index: 5; display: flex; align-items: center; justify-content: space-between;
   padding: 12px 20px 6px; font-size: 11px; color: #c9c9cf; }
+header.draggable { cursor: grab; }
+header.draggable:active { cursor: grabbing; }
 .right { display: flex; align-items: center; gap: 12px; }
 .clock { font-size: 12px; color: var(--txt); font-weight: 600; }
 .eyes { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }

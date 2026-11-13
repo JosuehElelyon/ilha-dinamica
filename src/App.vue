@@ -67,6 +67,7 @@ function setPinned(v: boolean) {
 }
 api.onHover(inside => (inside ? enter() : leave()))
 api.onToggle(() => setPinned(!island.expanded))
+api.onAnchor(a => (island.anchor = a))
 window.addEventListener('blur', () => { if (!island.hovering) collapse(true) })
 document.addEventListener('click', () => (island.menuOpen = false))
 function onFocusOut() { setTimeout(() => { if (!island.hovering) collapse() }, 60) }
@@ -157,6 +158,7 @@ onMounted(async () => {
   loadSettings(d.settings || {})
   Object.assign(island, {
     isAdmin: d.isAdmin, autostart: d.autostart, platform: d.platform, version: d.version,
+    anchor: d.anchor || island.anchor,
     protectedNames: new Set(d.protectedNames || []), selfName: (d.selfName || '').toLowerCase(), ownPids: d.ownPids || []
   })
   // lembretes antigos (app estava fechado há muito tempo) são marcados sem disparar
@@ -172,7 +174,8 @@ onMounted(async () => {
 <template>
   <div
     id="island" ref="el"
-    :class="[island.expanded ? 'expanded' : 'collapsed', { toasting: !!island.toast, alert: island.toast?.alert }]"
+    :class="[island.expanded ? 'expanded' : 'collapsed', 'ax-' + island.anchor.x, 'ay-' + island.anchor.y,
+             { toasting: !!island.toast, alert: island.toast?.alert }]"
     @mouseenter="enter" @mouseleave="leave" @focusout="onFocusOut"
   >
     <IslandPill />

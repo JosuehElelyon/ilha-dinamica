@@ -9,25 +9,13 @@ mod clipboard;
 mod data;
 mod hover;
 mod media;
+mod position;
 mod system;
 mod tray;
 mod util;
 
-use tauri::{Emitter, Manager, PhysicalPosition};
+use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, ShortcutState};
-
-/// Largura e altura (em pixels lógicos) da janela transparente onde a ilha é desenhada.
-pub const WIN_W: f64 = 880.0;
-
-fn place_window(win: &tauri::WebviewWindow) {
-    let monitor = win.primary_monitor().ok().flatten().or_else(|| win.current_monitor().ok().flatten());
-    if let Some(m) = monitor {
-        let scale = m.scale_factor();
-        let w = (WIN_W * scale) as i32;
-        let x = m.position().x + (m.size().width as i32 - w) / 2;
-        let _ = win.set_position(PhysicalPosition::new(x, m.position().y));
-    }
-}
 
 fn main() {
     // Quando reiniciamos como administrador, damos tempo para a instância antiga fechar
@@ -66,7 +54,7 @@ fn main() {
             data::load(&handle);
 
             let win = app.get_webview_window("main").expect("janela principal");
-            place_window(&win);
+            position::restore(&handle, &win);
             let _ = win.set_ignore_cursor_events(true);
             let _ = win.show();
 
@@ -77,18 +65,21 @@ fn main() {
             audio::start(handle.clone());
             system::start(handle.clone());
 
-            // reposiciona se a resolução / escala mudar
-            let w2 = win.clone();
-            win.on_window_event(move |e| {
-                if let tauri::WindowEvent::ScaleFactorChanged { .. } = e {
-                    place_window(&w2);
-                }
+            // ao arrastar: mantém dentro da tela, salva a posição e ajusta a âncora;
+            // se a resolução / escala mudar, volta para onde estava
+            let (h2, w2) = (handle.clone(), win.clone());
+            win.on_window_event(move |e| match e {
+                tauri::WindowEvent::Moved(_) => position::on_moved(&h2),
+                tauri::WindowEvent::ScaleFactorChanged { .. } => position::restore(&h2, &w2),
+                _ => {}
             });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             hover::set_hit_rect,
             hover::set_interactive,
+            position::start_drag,
+            position::reset_position,
             data::get_data,
             data::save_notes,
             data::save_reminders,

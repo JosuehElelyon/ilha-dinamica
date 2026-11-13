@@ -3,11 +3,13 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 import { listen as tauriListen } from '@tauri-apps/api/event'
 import type {
-  AppData, Clip, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
+  Anchor, AppData, Clip, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo
 } from './types'
 import { mock } from './mock'
 
 export const inTauri = '__TAURI_INTERNALS__' in window
+// no navegador, deixa o simulador acessível pelo console (ex.: __ilhaMock.emit('anchor', {x:'left', y:'bottom'}))
+if (!inTauri) (window as unknown as { __ilhaMock: typeof mock }).__ilhaMock = mock
 
 function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   return inTauri ? tauriInvoke<T>(cmd, args) : mock.invoke<T>(cmd, args)
@@ -22,6 +24,8 @@ export const api = {
   // janela / mouse
   setHitRect: (x: number, y: number, w: number, h: number) => invoke<void>('set_hit_rect', { x, y, w, h }),
   setInteractive: (value: boolean) => invoke<void>('set_interactive', { value }),
+  startDrag: () => invoke<void>('start_drag'),
+  resetPosition: () => invoke<void>('reset_position'),
 
   // dados
   getData: () => invoke<AppData>('get_data'),
@@ -70,5 +74,6 @@ export const api = {
   onVol: (cb: (v: VolInfo) => void) => on('vol', cb),
   onDevices: (cb: (d: Devices) => void) => on('devices', cb),
   onSys: (cb: (s: SysInfo) => void) => on('sys', cb),
+  onAnchor: (cb: (a: Anchor) => void) => on('anchor', cb),
   onAutostart: (cb: (on: boolean) => void) => on('autostart', cb)
 }

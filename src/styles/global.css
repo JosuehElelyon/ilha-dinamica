@@ -28,8 +28,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* ================= ILHA ================= */
 #island {
+  /* âncora: para que lado a ilha cresce (muda conforme onde você a deixa na tela) */
   position: absolute; top: 6px; left: 50%;
-  transform: translateX(-50%) scale(var(--scale)); transform-origin: top center;
+  transform: translateX(var(--tx, -50%)) scale(var(--scale)); transform-origin: var(--oy, top) var(--ox, center);
   background:
     linear-gradient(180deg, hsla(var(--h) 60% 30% / calc(var(--glow) * .35)), transparent 60%),
     rgba(14,14,17,var(--alpha));
@@ -39,6 +40,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   transition: width .5s var(--ease), height .5s var(--ease), border-radius .5s var(--ease),
               box-shadow .3s, transform .4s var(--ease);
 }
+#island.ax-left  { left: 10px; --tx: 0%; --ox: left; }
+#island.ax-right { left: auto; right: 10px; --tx: 0%; --ox: right; }
+#island.ay-bottom { top: auto; bottom: 6px; --oy: bottom; }
 #island.collapsed { width: 230px; height: 36px; border-radius: 18px; }
 #island.collapsed.toasting { width: 340px; height: 40px; border-radius: 20px; }
 #island.expanded  { width: 760px; height: 300px; border-radius: 30px; }

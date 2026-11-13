@@ -19,9 +19,10 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         app.autolaunch().is_enabled().unwrap_or(false),
         None::<&str>,
     )?;
+    let center = MenuItem::with_id(app, "center", "Voltar ao centro do topo", true, None::<&str>)?;
     let sep = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Sair", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&toggle, &autostart, &sep, &quit])?;
+    let menu = Menu::with_items(app, &[&toggle, &center, &autostart, &sep, &quit])?;
 
     let mut builder = TrayIconBuilder::with_id("main")
         .tooltip("Ilha Dinâmica")
@@ -30,6 +31,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
             "toggle" => {
                 let _ = app.emit("toggle", ());
             }
+            "center" => crate::position::reset(app),
             "autostart" => {
                 let al = app.autolaunch();
                 let on = al.is_enabled().unwrap_or(false);

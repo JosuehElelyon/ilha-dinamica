@@ -26,6 +26,8 @@ export interface Reminder { id: number; date: string; time: string; text: string
 
 export interface Action { id: number; emoji: string; name: string; type: 'url' | 'file' | 'folder' | 'cmd'; target: string }
 
+export interface Anchor { x: 'left' | 'center' | 'right'; y: 'top' | 'bottom' }
+
 export interface AppData {
   notes: string
   settings: Record<string, unknown>
@@ -37,4 +39,5 @@ export interface AppData {
   selfName: string
   ownPids: number[]
   version: string
+  anchor?: Anchor
 }

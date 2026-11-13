@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { api } from '../lib/api'
-import type { Clip, Devices, MediaInfo, Reminder, SysInfo, VolInfo } from '../lib/types'
+import type { Anchor, Clip, Devices, MediaInfo, Reminder, SysInfo, VolInfo } from '../lib/types'
 import type { ModuleId } from './settings'
 
 export type TabId = ModuleId | 'modules' | 'settings'
@@ -29,7 +29,8 @@ export const island = reactive({
   version: '',
   protectedNames: new Set<string>(),
   selfName: '',
-  ownPids: [] as number[]
+  ownPids: [] as number[],
+  anchor: { x: 'center', y: 'top' } as Anchor
 })
 
 /** Relógio compartilhado (atualiza 4x por segundo) */

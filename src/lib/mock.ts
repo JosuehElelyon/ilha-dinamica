@@ -75,7 +75,8 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
   flush_dns: () => true,
   set_autostart: (a) => a.enabled,
   pick_path: () => null,
-  relaunch_admin: () => false
+  relaunch_admin: () => false,
+  reset_position: () => emit('anchor', { x: 'center', y: 'top' })
 }
 
 export const mock = {

@@ -19,6 +19,7 @@ Feita com **Tauri 2** — backend em **Rust**, interface em **Vue 3 + TypeScript
 - Botão **+**: ativa, desativa e reordena as abas.
 - **••• → Personalizar**: cor, tamanho, opacidade, cidade do clima e avisos.
 - **Avisos na pílula**: volume, microfone, fones conectados, bateria, internet, música nova, timer, foco e lembretes.
+- **Arraste para mover**: segure a barra do topo da ilha aberta e solte onde quiser. A posição fica salva; perto do centro do topo ela encaixa sozinha (ímã). Embaixo ou nos cantos, ela abre para o lado certo. Duplo clique na barra, ou **••• → Voltar ao centro do topo**, volta para a posição padrão. **Travar posição** evita arrastar sem querer.
 - Atalho **Ctrl + Alt + Espaço** abre/fecha a ilha. Ícone na bandeja com "Iniciar com o Windows".
 
 ## Como compilar e instalar
@@ -55,6 +56,7 @@ src/                 interface (Vue 3 + TypeScript)
   store/             estado compartilhado e configurações
 src-tauri/           backend (Rust)
   src/hover.rs       click-through da área transparente
+  src/position.rs    arrastar, ímã, âncora e posição salva
   src/media.rs       mídia + capa (Windows Media Control)
   src/audio.rs       volume, microfone e dispositivos (Core Audio)
   src/system.rs      CPU, RAM, bateria, brilho e processos

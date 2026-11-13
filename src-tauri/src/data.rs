@@ -42,6 +42,22 @@ fn persist(state: &DataState) {
     }
 }
 
+/// Altera uma configuração a partir do Rust (ex.: posição da janela) e salva
+pub fn set_setting(app: &AppHandle, key: &str, value: Value) {
+    let state = app.state::<DataState>();
+    {
+        let mut v = state.value.lock().unwrap();
+        if value.is_null() {
+            if let Some(o) = v["settings"].as_object_mut() {
+                o.remove(key);
+            }
+        } else {
+            v["settings"][key] = value;
+        }
+    }
+    persist(&state);
+}
+
 #[tauri::command]
 pub fn get_data(app: AppHandle, state: State<DataState>) -> Value {
     let mut v = state.value.lock().unwrap().clone();
@@ -54,6 +70,9 @@ pub fn get_data(app: AppHandle, state: State<DataState>) -> Value {
         o.insert("selfName".into(), json!(crate::system::self_name()));
         o.insert("ownPids".into(), json!([std::process::id()]));
         o.insert("version".into(), json!(env!("CARGO_PKG_VERSION")));
+        if let Some(win) = app.get_webview_window("main") {
+            o.insert("anchor".into(), json!(crate::position::anchor(&win)));
+        }
     }
     v
 }
