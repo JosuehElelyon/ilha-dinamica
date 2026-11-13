@@ -57,7 +57,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   background: radial-gradient(closest-side, hsla(var(--h) 90% 55% / calc(var(--glow) * .5)), transparent);
   pointer-events: none; }
 main { position: relative; flex: 1; min-height: 0; }
-.tab { position: absolute; inset: 4px 12px 0; animation: fade .3s var(--ease); }
+.tab { position: absolute; inset: 10px 14px 8px; animation: fade .3s var(--ease); }
 @keyframes fade { from { opacity: 0; transform: translateY(4px) } }
 
 /* pílula: some quando a ilha abre; texto mais largo durante avisos */

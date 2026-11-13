@@ -68,7 +68,7 @@ function center() { island.menuOpen = false; api.resetPosition() }
 
 <style scoped>
 header { position: relative; z-index: 5; display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 20px 6px; font-size: 11px; color: #c9c9cf; }
+  padding: 12px 20px 8px; font-size: 11px; color: #c9c9cf; }
 header.draggable { cursor: grab; }
 header.draggable:active { cursor: grabbing; }
 .right { display: flex; align-items: center; gap: 12px; }
