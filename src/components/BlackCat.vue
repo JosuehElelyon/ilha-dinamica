@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Gatinho preto animado no topo da ilha:
-// - Anda de um lado para o outro com patinhas e rabinho animados
+// - Anda de um lado para o outro com patinhas, orelhas e rabinho animados
 // - Para, senta de frente, olha para você e pisca
-// - Quando você interage com a ilha abaixo do topo, ele se apoia olhando para baixo e segue o cursor
+// - Quando você interage com a ilha abaixo do topo, ele se apoia na borda olhando para baixo
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { island } from '../store/state'
 
@@ -16,43 +16,14 @@ const dir = ref<1 | -1>(1)
 const baseMode = ref<'walk' | 'sit'>('walk')
 const blinking = ref(false)
 const interacting = ref(false)
-const mouse = ref({ x: 0, y: 0 })
 
 const mode = computed<Mode>(() => (interacting.value && island.expanded ? 'peek' : baseMode.value))
 
-// Vetor normalizado do olhar em direção ao cursor
-const look = computed(() => {
-  const el = stage.value
-  if (!el) return { dx: 0, dy: 0 }
-  const r = el.getBoundingClientRect()
-  const catX = r.left + (r.width * pos.value) / 100
-  const catY = r.top + r.height * 0.55
-  const vx = mouse.value.x - catX
-  const vy = mouse.value.y - catY
-  const dist = Math.hypot(vx, vy) || 1
-  const max = 2.1
-  return {
-    dx: Math.max(-max, Math.min(max, (vx / dist) * max)),
-    dy: Math.max(-max, Math.min(max, (vy / dist) * max))
-  }
-})
-
 function onMouseMove(e: MouseEvent) {
-  mouse.value = { x: e.clientX, y: e.clientY }
   const el = stage.value
   if (!el) return
   const r = el.getBoundingClientRect()
-  const belowHeader = e.clientY > r.bottom + 4
-  interacting.value = island.expanded && belowHeader
-  if (interacting.value && r.width > 0) {
-    // Segue suavemente a posição horizontal do cursor dentro dos limites do palco
-    const targetPct = ((e.clientX - r.left) / r.width) * 100
-    const clamped = Math.max(8, Math.min(92, targetPct))
-    if (Math.abs(clamped - pos.value) > 1.5) {
-      dir.value = clamped >= pos.value ? 1 : -1
-      pos.value += (clamped - pos.value) * 0.14
-    }
-  }
+  interacting.value = island.expanded && e.clientY > r.bottom + 4
 }
 
 function onMouseLeave() {
@@ -70,16 +41,16 @@ function tick(ts: number) {
   lastTs = ts
 
   if (mode.value === 'walk') {
-    pos.value += dir.value * dt * 11 // velocidade suave (~11%/s)
-    if (pos.value >= 90) { pos.value = 90; dir.value = -1 }
-    if (pos.value <= 10) { pos.value = 10; dir.value = 1 }
+    pos.value += dir.value * dt * 10.5
+    if (pos.value >= 88) { pos.value = 88; dir.value = -1 }
+    if (pos.value <= 12) { pos.value = 12; dir.value = 1 }
   }
 
   stateTimer += dt
-  if (baseMode.value === 'walk' && stateTimer > 6.2 && !interacting.value) {
+  if (baseMode.value === 'walk' && stateTimer > 6.5 && !interacting.value) {
     baseMode.value = 'sit'
     stateTimer = 0
-  } else if (baseMode.value === 'sit' && stateTimer > 3.6) {
+  } else if (baseMode.value === 'sit' && stateTimer > 3.8) {
     baseMode.value = 'walk'
     stateTimer = 0
   }
@@ -88,7 +59,7 @@ function tick(ts: number) {
 }
 
 function scheduleBlink() {
-  const delay = 2600 + Math.random() * 2800
+  const delay = 2500 + Math.random() * 2800
   blinkTimer = window.setTimeout(() => {
     blinking.value = true
     setTimeout(() => {
@@ -116,84 +87,153 @@ onUnmounted(() => {
 <template>
   <div ref="stage" class="cat-stage" aria-hidden="true">
     <div class="cat-pos" :class="[mode, { busy, blink: blinking }]" :style="{ left: pos + '%' }">
-      <!-- ========== MODO ANDANDO (PERFIL) ========== -->
-      <svg v-if="mode === 'walk'" class="cat-svg" :class="{ flip: dir === -1 }" viewBox="0 0 46 32" width="42" height="30">
-        <!-- Rabinho balançando -->
-        <path class="tail" d="M 10 19 Q 3 13 6 7" fill="none" stroke="#0c0c12" stroke-width="3.2" stroke-linecap="round" />
-        <path class="tail" d="M 10 19 Q 3 13 6 7" fill="none" stroke="#2c2c38" stroke-width="1" stroke-linecap="round" />
-        <!-- Patinhas traseiras e dianteiras -->
-        <rect class="paw paw-b" x="13" y="22" width="3.2" height="7" rx="1.6" fill="#0a0a0e" stroke="#2a2a36" stroke-width=".6" />
-        <rect class="paw paw-a" x="17" y="22" width="3.2" height="7" rx="1.6" fill="#0a0a0e" stroke="#2a2a36" stroke-width=".6" />
-        <rect class="paw paw-a" x="25" y="22" width="3.2" height="7" rx="1.6" fill="#0a0a0e" stroke="#2a2a36" stroke-width=".6" />
-        <rect class="paw paw-b" x="29" y="22" width="3.2" height="7" rx="1.6" fill="#0a0a0e" stroke="#2a2a36" stroke-width=".6" />
-        <!-- Corpo -->
-        <ellipse cx="21" cy="19.5" rx="10" ry="5.5" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" />
-        <!-- Cabeça e orelhas -->
-        <polygon points="27,10 28.5,3.5 32.5,8.5" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" stroke-linejoin="round" />
-        <polygon points="34,8.5 37.5,3.5 39,10" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" stroke-linejoin="round" />
-        <polygon points="28.6,8.5 29.3,5.3 31.3,8" fill="#e87a9c" opacity=".65" />
-        <polygon points="35.1,8 37.1,5.3 37.8,8.5" fill="#e87a9c" opacity=".65" />
-        <circle cx="33" cy="13.5" r="6.2" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" />
-        <!-- Olhinhos -->
-        <ellipse class="eye" cx="31.3" cy="13.2" rx="1.35" ry="1.8" />
-        <ellipse class="eye" cx="35.3" cy="13.2" rx="1.35" ry="1.8" />
-        <!-- Narizinho -->
-        <polygon points="33.1,15.3 34.3,15.3 33.7,16" fill="#f08aa8" />
+      <!-- ========== MODO ANDANDO (PERFIL DETALHADO) ========== -->
+      <svg v-if="mode === 'walk'" class="cat-svg" :class="{ flip: dir === -1 }" viewBox="0 0 52 34" width="46" height="31">
+        <defs>
+          <linearGradient id="catFurW" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1e1e2a" />
+            <stop offset="100%" stop-color="#09090e" />
+          </linearGradient>
+        </defs>
+        <!-- Sombra suave no chão -->
+        <ellipse cx="24" cy="31.2" rx="13" ry="1.4" fill="#000" opacity=".35" />
+        <!-- Rabinho curvo em S -->
+        <path class="tail" d="M 12 20 C 5 18 4 10 8 6 C 10 4.5 11.5 6.5 9.5 8" fill="none" stroke="#111118" stroke-width="3.2" stroke-linecap="round" />
+        <path class="tail" d="M 12 20 C 5 18 4 10 8 6" fill="none" stroke="#363648" stroke-width=".9" stroke-linecap="round" />
+        <!-- Patinhas de trás (mais escuras) -->
+        <path class="paw paw-b" d="M 14 23 L 13 29.5 Q 13 31 15.2 31 Q 16.5 31 16.5 29.5 L 17 23 Z" fill="#08080c" stroke="#2a2a38" stroke-width=".6" />
+        <path class="paw paw-a" d="M 27 23 L 26.5 29.5 Q 26.5 31 28.7 31 Q 30 31 30 29.5 L 30 23 Z" fill="#08080c" stroke="#2a2a38" stroke-width=".6" />
+        <!-- Corpo orgânico com peito fofo -->
+        <path d="M 12 21 C 12 15.5 18 14 25 15 C 30 15.6 33 18 33 21.5 C 33 25 28.5 26 22 26 C 15.5 26 12 24.5 12 21 Z"
+              fill="url(#catFurW)" stroke="#38384a" stroke-width=".85" />
+        <!-- Patinhas da frente -->
+        <path class="paw paw-a" d="M 17.5 23.5 L 17 29.8 Q 17 31.2 19.2 31.2 Q 20.6 31.2 20.6 29.8 L 20.8 23.5 Z" fill="url(#catFurW)" stroke="#38384a" stroke-width=".7" />
+        <path class="paw paw-b" d="M 29.5 23.5 L 29.5 29.8 Q 29.5 31.2 31.8 31.2 Q 33.2 31.2 33.2 29.8 L 32.8 23.5 Z" fill="url(#catFurW)" stroke="#38384a" stroke-width=".7" />
+        <!-- Orelha de trás e orelha da frente -->
+        <polygon points="31,10.5 32.2,3.5 36.2,8.8" fill="#12121a" stroke="#38384a" stroke-width=".8" stroke-linejoin="round" />
+        <polygon points="36.5,9 40.5,3.2 42,10.5" fill="url(#catFurW)" stroke="#38384a" stroke-width=".8" stroke-linejoin="round" />
+        <polygon points="37.6,8.6 40,4.9 40.9,9.2" fill="#f08aa8" opacity=".75" />
+        <!-- Cabeça arredondada com bochechinha -->
+        <path d="M 29.5 14.5 C 29.5 10.2 33 8 37.2 8 C 41.5 8 44.5 10.8 44.5 14.5 C 44.5 18 41.8 20.2 37.2 20.2 C 32.5 20.2 29.5 18 29.5 14.5 Z"
+              fill="url(#catFurW)" stroke="#38384a" stroke-width=".85" />
+        <!-- Brilho sutil na testa -->
+        <path d="M 34.5 10 Q 37.5 9.2 40 10.2" fill="none" stroke="#484860" stroke-width=".8" stroke-linecap="round" opacity=".7" />
+        <!-- Bigodinhos -->
+        <path d="M 32.5 15.8 L 28 15.2 M 32.5 17.2 L 28.2 17.8 M 42.2 15.8 L 46.5 15.2 M 42.2 17.2 L 46.2 17.8"
+              stroke="#5a5a72" stroke-width=".65" stroke-linecap="round" />
+        <!-- Olhos expressivos com pupila e ponto de brilho -->
+        <g class="eye-group">
+          <ellipse class="eye" cx="35.6" cy="14" rx="1.65" ry="2.05" />
+          <ellipse class="eye" cx="40.6" cy="14" rx="1.65" ry="2.05" />
+          <circle class="pupil" cx="35.9" cy="14.1" r=".88" fill="#09090d" />
+          <circle class="pupil" cx="40.9" cy="14.1" r=".88" fill="#09090d" />
+          <circle class="shine" cx="35.2" cy="13.2" r=".55" fill="#fff" />
+          <circle class="shine" cx="40.2" cy="13.2" r=".55" fill="#fff" />
+        </g>
+        <!-- Narizinho e boquinha -->
+        <polygon points="37.6,16.1 39.2,16.1 38.4,17" fill="#f28aa8" />
+        <path d="M 37 17.6 Q 38.4 18.4 39.8 17.6" fill="none" stroke="#7a7a96" stroke-width=".65" stroke-linecap="round" />
       </svg>
 
       <!-- ========== MODO SENTADO (DE FRENTE, PISCANDO) ========== -->
-      <svg v-else-if="mode === 'sit'" class="cat-svg sit-bob" viewBox="0 0 40 34" width="36" height="31">
-        <!-- Rabo enrolado ao lado -->
-        <path class="tail-sit" d="M 25 28 Q 34 28 33 21 Q 32 17 29 19" fill="none" stroke="#0a0a0e" stroke-width="3.2" stroke-linecap="round" />
+      <svg v-else-if="mode === 'sit'" class="cat-svg sit-bob" viewBox="0 0 44 35" width="40" height="32">
+        <defs>
+          <linearGradient id="catFurS" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#20202d" />
+            <stop offset="100%" stop-color="#09090e" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="22" cy="32.2" rx="10.5" ry="1.5" fill="#000" opacity=".35" />
+        <!-- Rabo enrolado ao lado com ponta suave -->
+        <path class="tail-sit" d="M 27 29.5 Q 37 29.5 36 22 Q 35.2 17.5 31.8 19.5" fill="none" stroke="#111118" stroke-width="3.2" stroke-linecap="round" />
+        <path class="tail-sit" d="M 27 29.5 Q 37 29.5 36 22 Q 35.2 17.5 31.8 19.5" fill="none" stroke="#38384a" stroke-width=".8" stroke-linecap="round" />
         <!-- Corpo sentado -->
-        <ellipse cx="20" cy="23.5" rx="7.5" ry="7.2" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" />
-        <!-- Patinhas juntas na frente -->
-        <ellipse cx="17" cy="29.5" rx="2.3" ry="1.6" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".7" />
-        <ellipse cx="23" cy="29.5" rx="2.3" ry="1.6" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".7" />
-        <!-- Orelhas -->
-        <polygon points="13.2,11 12.2,3.8 17.5,8.2" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" stroke-linejoin="round" />
-        <polygon points="22.5,8.2 27.8,3.8 26.8,11" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" stroke-linejoin="round" />
-        <polygon points="14,9.8 13.4,5.6 16.5,8.3" fill="#e87a9c" opacity=".7" />
-        <polygon points="23.5,8.3 26.6,5.6 26,9.8" fill="#e87a9c" opacity=".7" />
-        <!-- Cabeça -->
-        <circle cx="20" cy="13.5" r="6.8" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" />
+        <path d="M 14 26 C 14 19.5 17.5 17.5 22 17.5 C 26.5 17.5 30 19.5 30 26 C 30 30.2 27 31.5 22 31.5 C 17 31.5 14 30.2 14 26 Z"
+              fill="url(#catFurS)" stroke="#38384a" stroke-width=".85" />
+        <!-- Mancha fofa no peito -->
+        <path d="M 19.2 21.5 Q 22 20.5 24.8 21.5 Q 24 25.5 22 26.2 Q 20 25.5 19.2 21.5 Z" fill="#2a2a3a" opacity=".75" />
+        <!-- Patinhas dianteiras juntas -->
+        <ellipse cx="18.6" cy="30.6" rx="2.6" ry="1.7" fill="url(#catFurS)" stroke="#38384a" stroke-width=".75" />
+        <ellipse cx="25.4" cy="30.6" rx="2.6" ry="1.7" fill="url(#catFurS)" stroke="#38384a" stroke-width=".75" />
+        <path d="M 17.8 30.8 L 17.8 31.8 M 19.4 30.8 L 19.4 31.8 M 24.6 30.8 L 24.6 31.8 M 26.2 30.8 L 26.2 31.8"
+              stroke="#48485c" stroke-width=".6" stroke-linecap="round" />
+        <!-- Orelhas pontudas com interior rosado -->
+        <polygon points="14.2,11.5 12.6,3.4 19,8.4" fill="url(#catFurS)" stroke="#38384a" stroke-width=".85" stroke-linejoin="round" />
+        <polygon points="25,8.4 31.4,3.4 29.8,11.5" fill="url(#catFurS)" stroke="#38384a" stroke-width=".85" stroke-linejoin="round" />
+        <polygon points="15,10.2 14.1,5.3 17.8,8.5" fill="#f08aa8" opacity=".75" />
+        <polygon points="26.2,8.5 29.9,5.3 29,10.2" fill="#f08aa8" opacity=".75" />
+        <!-- Cabeça fofa -->
+        <ellipse cx="22" cy="13.8" rx="7.6" ry="6.7" fill="url(#catFurS)" stroke="#38384a" stroke-width=".85" />
+        <!-- Bochechinhas rosadas sutis -->
+        <ellipse cx="16.4" cy="16.2" rx="1.3" ry=".75" fill="#f08aa8" opacity=".28" />
+        <ellipse cx="27.6" cy="16.2" rx="1.3" ry=".75" fill="#f08aa8" opacity=".28" />
         <!-- Bigodinhos -->
-        <path d="M 12 14 L 8 13.2 M 12 15.5 L 8 16.2 M 28 14 L 32 13.2 M 28 15.5 L 32 16.2" stroke="#454556" stroke-width=".7" stroke-linecap="round" />
-        <!-- Olhos com pupila seguindo levemente o mouse -->
-        <ellipse class="eye" cx="17.3" cy="13.2" rx="1.6" ry="2.1" />
-        <ellipse class="eye" cx="22.7" cy="13.2" rx="1.6" ry="2.1" />
-        <circle class="pupil" :cx="17.3 + look.dx * 0.3" :cy="13.2 + look.dy * 0.3" r=".75" fill="#0a0a0e" />
-        <circle class="pupil" :cx="22.7 + look.dx * 0.3" :cy="13.2 + look.dy * 0.3" r=".75" fill="#0a0a0e" />
-        <polygon points="19.3,15.5 20.7,15.5 20,16.3" fill="#f08aa8" />
+        <path d="M 13.8 14.5 L 8.8 13.6 M 13.8 16 L 8.8 16.8 M 30.2 14.5 L 35.2 13.6 M 30.2 16 L 35.2 16.8"
+              stroke="#5a5a72" stroke-width=".65" stroke-linecap="round" />
+        <!-- Olhos grandes com brilho -->
+        <g class="eye-group">
+          <ellipse class="eye" cx="19" cy="13.5" rx="1.8" ry="2.25" />
+          <ellipse class="eye" cx="25" cy="13.5" rx="1.8" ry="2.25" />
+          <circle class="pupil" cx="19" cy="13.6" r=".95" fill="#09090d" />
+          <circle class="pupil" cx="25" cy="13.6" r=".95" fill="#09090d" />
+          <circle class="shine" cx="18.3" cy="12.6" r=".6" fill="#fff" />
+          <circle class="shine" cx="24.3" cy="12.6" r=".6" fill="#fff" />
+        </g>
+        <!-- Nariz e boquinha :3 -->
+        <polygon points="21.2,15.7 22.8,15.7 22,16.5" fill="#f28aa8" />
+        <path d="M 20.2 17.2 Q 21.1 18 22 17.1 Q 22.9 18 23.8 17.2" fill="none" stroke="#8585a2" stroke-width=".65" stroke-linecap="round" />
       </svg>
 
-      <!-- ========== MODO APOIADO PARA BAIXO (SEGUINDO O CURSOR) ========== -->
-      <svg v-else class="cat-svg peek" viewBox="0 0 42 32" width="38" height="30">
+      <!-- ========== MODO APOIADO NA BORDA (OLHANDO PARA BAIXO) ========== -->
+      <svg v-else class="cat-svg peek" viewBox="0 0 46 34" width="42" height="31">
+        <defs>
+          <linearGradient id="catFurP" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#222230" />
+            <stop offset="100%" stop-color="#09090e" />
+          </linearGradient>
+        </defs>
+        <!-- Pontinha do rabinho atrás -->
+        <path class="tail-sit" d="M 32 18 Q 39 14 37 8" fill="none" stroke="#181822" stroke-width="2.6" stroke-linecap="round" />
         <!-- Orelhas atentas -->
-        <g :style="{ transform: `translate(${look.dx * 0.6}px, ${look.dy * 0.4}px)` }">
-          <polygon points="13,12 11.5,4.5 17.8,9" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" stroke-linejoin="round" />
-          <polygon points="24.2,9 30.5,4.5 29,12" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" stroke-linejoin="round" />
-          <polygon points="13.8,10.6 13,6.4 16.6,9.2" fill="#e87a9c" opacity=".7" />
-          <polygon points="25.4,9.2 29,6.4 28.2,10.6" fill="#e87a9c" opacity=".7" />
-          <!-- Cabeça apoiada olhando para baixo -->
-          <ellipse cx="21" cy="15.5" rx="7.6" ry="6.6" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" />
-          <!-- Bigodinhos -->
-          <path d="M 12.5 16 L 8.5 15.5 M 12.5 17.5 L 8.5 18.2 M 29.5 16 L 33.5 15.5 M 29.5 17.5 L 33.5 18.2" stroke="#454556" stroke-width=".7" stroke-linecap="round" />
-          <!-- Olhos grandes curiosos seguindo o mouse -->
-          <ellipse class="eye" cx="18" cy="15.3" rx="1.8" ry="2.2" />
-          <ellipse class="eye" cx="24" cy="15.3" rx="1.8" ry="2.2" />
-          <circle class="pupil" :cx="18 + look.dx * 0.45" :cy="15.6 + look.dy * 0.45" r=".85" fill="#0a0a0e" />
-          <circle class="pupil" :cx="24 + look.dx * 0.45" :cy="15.6 + look.dy * 0.45" r=".85" fill="#0a0a0e" />
-          <polygon points="20.3,17.8 21.7,17.8 21,18.6" fill="#f08aa8" />
+        <polygon points="13.5,12 11.8,3.6 18.8,8.8" fill="url(#catFurP)" stroke="#3c3c50" stroke-width=".85" stroke-linejoin="round" />
+        <polygon points="27.2,8.8 34.2,3.6 32.5,12" fill="url(#catFurP)" stroke="#3c3c50" stroke-width=".85" stroke-linejoin="round" />
+        <polygon points="14.5,10.6 13.4,5.6 17.5,8.8" fill="#f08aa8" opacity=".78" />
+        <polygon points="28.5,8.8 32.6,5.6 31.5,10.6" fill="#f08aa8" opacity=".78" />
+        <!-- Cabeça apoiada olhando para baixo -->
+        <ellipse cx="23" cy="15.2" rx="8.6" ry="7.2" fill="url(#catFurP)" stroke="#3c3c50" stroke-width=".85" />
+        <!-- Bochechas rosadas -->
+        <ellipse cx="16.8" cy="17.8" rx="1.4" ry=".8" fill="#f08aa8" opacity=".3" />
+        <ellipse cx="29.2" cy="17.8" rx="1.4" ry=".8" fill="#f08aa8" opacity=".3" />
+        <!-- Bigodinhos -->
+        <path d="M 13.8 16 L 8.5 15.2 M 13.8 17.6 L 8.5 18.4 M 32.2 16 L 37.5 15.2 M 32.2 17.6 L 37.5 18.4"
+              stroke="#5e5e78" stroke-width=".65" stroke-linecap="round" />
+        <!-- Olhos grandes curiosos -->
+        <g class="eye-group">
+          <ellipse class="eye" cx="19.6" cy="15.1" rx="1.95" ry="2.35" />
+          <ellipse class="eye" cx="26.4" cy="15.1" rx="1.95" ry="2.35" />
+          <circle class="pupil" cx="19.6" cy="15.6" r="1.05" fill="#09090d" />
+          <circle class="pupil" cx="26.4" cy="15.6" r="1.05" fill="#09090d" />
+          <circle class="shine" cx="18.9" cy="14.2" r=".65" fill="#fff" />
+          <circle class="shine" cx="25.7" cy="14.2" r=".65" fill="#fff" />
         </g>
-        <!-- Duas patinhas apoiadas na borda inferior do header -->
-        <ellipse class="lpaw" cx="15" cy="24.5" rx="3.1" ry="2.4" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" />
-        <ellipse class="rpaw" cx="27" cy="24.5" rx="3.1" ry="2.4" fill="#0a0a0e" stroke="#2c2c38" stroke-width=".8" />
-        <!-- Almofadinhas sutis nas patinhas -->
-        <circle cx="14.2" cy="24.8" r=".55" fill="#3a3a48" />
-        <circle cx="15.8" cy="24.8" r=".55" fill="#3a3a48" />
-        <circle cx="26.2" cy="24.8" r=".55" fill="#3a3a48" />
-        <circle cx="27.8" cy="24.8" r=".55" fill="#3a3a48" />
+        <!-- Narizinho e boquinha :3 -->
+        <polygon points="22.1,17.7 23.9,17.7 23,18.6" fill="#f28aa8" />
+        <path d="M 21.2 19.3 Q 22.1 20 23 19.2 Q 23.9 20 24.8 19.3" fill="none" stroke="#8585a2" stroke-width=".65" stroke-linecap="round" />
+        <!-- Duas patinhas apoiadas na borda com almofadinhas rosadas -->
+        <g class="lpaw">
+          <ellipse cx="16.2" cy="25.2" rx="3.4" ry="2.6" fill="url(#catFurP)" stroke="#3c3c50" stroke-width=".8" />
+          <ellipse cx="16.2" cy="25.8" rx="1.1" ry=".75" fill="#f08aa8" opacity=".65" />
+          <circle cx="14.7" cy="24.5" r=".55" fill="#f08aa8" opacity=".65" />
+          <circle cx="16.2" cy="24.1" r=".55" fill="#f08aa8" opacity=".65" />
+          <circle cx="17.7" cy="24.5" r=".55" fill="#f08aa8" opacity=".65" />
+        </g>
+        <g class="rpaw">
+          <ellipse cx="29.8" cy="25.2" rx="3.4" ry="2.6" fill="url(#catFurP)" stroke="#3c3c50" stroke-width=".8" />
+          <ellipse cx="29.8" cy="25.8" rx="1.1" ry=".75" fill="#f08aa8" opacity=".65" />
+          <circle cx="28.3" cy="24.5" r=".55" fill="#f08aa8" opacity=".65" />
+          <circle cx="29.8" cy="24.1" r=".55" fill="#f08aa8" opacity=".65" />
+          <circle cx="31.3" cy="24.5" r=".55" fill="#f08aa8" opacity=".65" />
+        </g>
       </svg>
     </div>
   </div>
@@ -201,41 +241,48 @@ onUnmounted(() => {
 
 <style scoped>
 .cat-stage {
-  position: absolute; left: 170px; right: 210px; top: 2px; height: 32px;
+  position: absolute; left: 170px; right: 210px; top: 1px; height: 34px;
   pointer-events: none; overflow: hidden;
 }
 .cat-pos {
   position: absolute; top: 0; transform: translateX(-50%);
-  transition: top .2s ease;
+  transition: top .22s ease;
 }
-.cat-pos.peek { top: 3px; }
+.cat-pos.peek { top: 2px; }
 .cat-svg { display: block; overflow: visible; }
 .cat-svg.flip { transform: scaleX(-1); }
 
 .eye {
-  fill: #fff;
+  fill: #ffd966;
   transform-box: fill-box;
   transform-origin: center;
-  transition: transform .08s ease;
+  transition: transform .09s ease;
 }
 .cat-pos.busy .eye { fill: var(--accent); }
 .cat-pos.blink .eye { transform: scaleY(.08); }
-.cat-pos.blink .pupil { opacity: 0; }
+.cat-pos.blink .pupil,
+.cat-pos.blink .shine { opacity: 0; }
 
 .tail {
   transform-box: fill-box;
   transform-origin: bottom right;
   animation: wag 1.1s ease-in-out infinite alternate;
 }
+.tail-sit {
+  transform-box: fill-box;
+  transform-origin: bottom left;
+  animation: tailSway 2.2s ease-in-out infinite alternate;
+}
 .paw-a { animation: stepA .48s ease-in-out infinite alternate; }
 .paw-b { animation: stepB .48s ease-in-out infinite alternate; }
 .sit-bob { animation: breathe 2.4s ease-in-out infinite; }
-.lpaw { animation: pawTap 2.2s ease-in-out infinite; }
-.rpaw { animation: pawTap 2.2s ease-in-out .3s infinite; }
+.lpaw { animation: pawTap 2.4s ease-in-out infinite; }
+.rpaw { animation: pawTap 2.4s ease-in-out .35s infinite; }
 
-@keyframes wag { from { transform: rotate(-10deg); } to { transform: rotate(14deg); } }
-@keyframes stepA { from { transform: translateY(0) rotate(-10deg); } to { transform: translateY(-2px) rotate(12deg); } }
-@keyframes stepB { from { transform: translateY(-2px) rotate(12deg); } to { transform: translateY(0) rotate(-10deg); } }
+@keyframes wag { from { transform: rotate(-9deg); } to { transform: rotate(12deg); } }
+@keyframes tailSway { from { transform: rotate(-4deg); } to { transform: rotate(6deg); } }
+@keyframes stepA { from { transform: translateY(0) rotate(-9deg); } to { transform: translateY(-2px) rotate(11deg); } }
+@keyframes stepB { from { transform: translateY(-2px) rotate(11deg); } to { transform: translateY(0) rotate(-9deg); } }
 @keyframes breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
 @keyframes pawTap { 0%, 88%, 100% { transform: translateY(0); } 94% { transform: translateY(-1.5px); } }
 </style>
