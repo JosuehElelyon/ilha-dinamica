@@ -1,6 +1,7 @@
 import { reactive, ref } from 'vue'
 import { api } from '../lib/api'
-import type { Anchor, Clip, Devices, MediaInfo, Reminder, SysInfo, VolInfo } from '../lib/types'
+import { parseIcs } from '../lib/ics'
+import type { Anchor, Clip, Devices, MediaInfo, Meeting, Reminder, SysInfo, VolInfo } from '../lib/types'
 import type { ModuleId } from './settings'
 
 export type TabId = ModuleId | 'modules' | 'settings'
@@ -118,10 +119,33 @@ export const focusLeft = () => (focus.running ? (focus.endAt - now.value) / 1000
 export const timer = reactive({ total: 5 * 60, left: 5 * 60, running: false, endAt: 0 })
 export const timerLeft = () => (timer.running ? (timer.endAt - now.value) / 1000 : timer.left)
 
-/* ---------- lembretes ---------- */
+/* ---------- lembretes e reuniões (ICS / Teams) ---------- */
 export const reminders = ref<Reminder[]>([])
 export const remDate = (r: Reminder) => new Date(`${r.date}T${r.time}:00`)
 export const saveReminders = () => api.saveReminders(JSON.parse(JSON.stringify(reminders.value)))
+
+export const meetings = ref<Meeting[]>([])
+export const meetingsState = reactive({ loading: false, error: '' })
+const alertedMeetings = new Set<string>()
+
+export async function refreshMeetings(icsUrl: string) {
+  const url = (icsUrl || '').trim()
+  if (!url) {
+    meetings.value = []
+    meetingsState.error = ''
+    return
+  }
+  meetingsState.loading = true
+  try {
+    const raw = await api.fetchIcs(url)
+    meetings.value = parseIcs(raw)
+    meetingsState.error = ''
+  } catch (e) {
+    meetingsState.error = String(e)
+  } finally {
+    meetingsState.loading = false
+  }
+}
 
 /** Verificações que rodam a cada tique do relógio */
 export function checkAll() {
@@ -148,4 +172,15 @@ export function checkAll() {
     }
   }
   if (changed) saveReminders()
+
+  // avisa 5 minutos antes de uma reunião começar
+  for (const m of meetings.value) {
+    if (m.allDay || alertedMeetings.has(m.id)) continue
+    const diff = m.startMs - now.value
+    if (diff > 0 && diff <= 5 * 60_000) {
+      alertedMeetings.add(m.id)
+      const mins = Math.max(1, Math.ceil(diff / 60_000))
+      alertIsland(`Reunião em ${mins} min`, `${m.startTime} · ${m.summary}`, '📹')
+    }
+  }
 }

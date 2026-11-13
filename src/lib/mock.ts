@@ -93,6 +93,25 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
   flush_dns: () => true,
   set_autostart: (a) => a.enabled,
   pick_path: () => null,
+  open_in_antigravity: () => true,
+  fetch_ics: () => {
+    const d = new Date()
+    const pad2 = (n: number) => String(n).padStart(2, '0')
+    const ds = `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`
+    return [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:mock-teams-1',
+      `DTSTART:${ds}T150000`,
+      `DTEND:${ds}T153000`,
+      'SUMMARY:Daily — Alinhamento Técnico',
+      'LOCATION:Microsoft Teams Meeting',
+      'X-MICROSOFT-SKYPETEAMSMEETINGURL:https://teams.microsoft.com/l/meetup-join/mock',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n')
+  },
   relaunch_admin: () => false,
   list_adapters: () => adapters,
   vpn_connect: (a) => {

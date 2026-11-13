@@ -49,6 +49,7 @@ export interface Settings {
   vpnExclusive: boolean
   steamId: string
   friendAlerts: boolean
+  icsUrl: string
 }
 
 const DEFAULTS: Settings = {
@@ -73,7 +74,8 @@ const DEFAULTS: Settings = {
   ],
   vpnExclusive: false,
   steamId: '',
-  friendAlerts: true
+  friendAlerts: true,
+  icsUrl: ''
 }
 
 export const S = reactive<Settings>(structuredClone(DEFAULTS))
@@ -102,6 +104,7 @@ export function loadSettings(saved: Record<string, unknown>) {
   if (!Array.isArray(S.cleanSel)) S.cleanSel = DEFAULTS.cleanSel
   if (!Array.isArray(S.snippets)) S.snippets = DEFAULT_SNIPPETS
   if (!Array.isArray(S.orgs)) S.orgs = structuredClone(DEFAULTS.orgs)
+  S.orgs = S.orgs.map(o => ({ ...o, repos: Array.isArray(o.repos) ? o.repos : [] }))
   // FNDE salva antes de sabermos a VPN: aplica o GlobalProtect padrão se ainda estiver vazia
   const fnde = S.orgs.find(o => o.id === 'fnde')
   if (fnde && fnde.vpn.type === 'none' && !fnde.vpn.name) fnde.vpn = { ...fnde.vpn, type: 'globalprotect', name: 'vpn01.fnde.gov.br', adapter: 'PANGP' }

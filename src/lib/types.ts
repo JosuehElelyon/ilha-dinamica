@@ -29,12 +29,25 @@ export interface Action { id: number; emoji: string; name: string; type: 'url' |
 export interface Adapter { name: string; desc: string; up: boolean; ip: string }
 
 export type VpnType = 'windows' | 'openvpnconnect' | 'openvpn' | 'wireguard' | 'cisco' | 'forti' | 'globalprotect' | 'custom' | 'none'
+export interface OrgRepo { name: string; path: string }
 export interface Org {
   id: string
   name: string
   color: string
   vpn: { type: VpnType; name: string; user: string; adapter: string; connect: string; disconnect: string }
   gitlab: { url: string; insecure: boolean }
+  repos?: OrgRepo[]
+}
+export interface Meeting {
+  id: string
+  date: string
+  startTime: string
+  endTime: string
+  startMs: number
+  endMs: number
+  summary: string
+  joinUrl: string
+  allDay: boolean
 }
 export interface Mr {
   id: number; iid: number; title: string; project: string; url: string; author: string

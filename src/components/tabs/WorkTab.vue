@@ -2,12 +2,12 @@
 // Trabalho: um cartão por órgão com VPN (liga/desliga) e Merge Requests do GitLab
 import { computed, reactive, ref } from 'vue'
 import { api } from '../../lib/api'
-import type { Mr, Org } from '../../lib/types'
+import type { Mr, Org, OrgRepo } from '../../lib/types'
 import { ACCENTS, S, save, newOrg } from '../../store/settings'
 import { showToast } from '../../store/state'
 import { VPN_TYPES, work, st, toggleVpn, loadMrs, refreshSecrets, adapterKey, pipeIcon } from '../../store/work'
 
-type View = { kind: 'cards' } | { kind: 'config'; id: string } | { kind: 'mrs'; id: string }
+type View = { kind: 'cards' } | { kind: 'config'; id: string } | { kind: 'mrs'; id: string } | { kind: 'repos'; id: string }
 const view = ref<View>({ kind: 'cards' })
 const org = computed(() => (view.value.kind === 'cards' ? null : S.orgs.find(o => o.id === (view.value as { id: string }).id) || null))
 
@@ -16,9 +16,34 @@ const form = reactive({ org: null as Org | null, token: '', password: '', testin
 const typeInfo = computed(() => VPN_TYPES.find(t => t.id === form.org?.vpn.type) || VPN_TYPES[0])
 
 function openConfig(o: Org) {
-  form.org = structuredClone(JSON.parse(JSON.stringify(o)))
+  const clone: Org = structuredClone(JSON.parse(JSON.stringify(o)))
+  if (!Array.isArray(clone.repos)) clone.repos = []
+  form.org = clone
   form.token = ''; form.password = ''; form.testMsg = ''; form.showAdapters = false
   view.value = { kind: 'config', id: o.id }
+}
+async function addRepo() {
+  if (!form.org) return
+  const path = await api.pickPath('folder')
+  if (!path) return
+  const name = path.split(/[\\/]/).filter(Boolean).pop() || 'Projeto'
+  form.org.repos = [...(form.org.repos || []), { name, path }]
+}
+function removeRepo(idx: number) {
+  if (!form.org?.repos) return
+  form.org.repos = form.org.repos.filter((_, i) => i !== idx)
+}
+async function openRepo(r: OrgRepo) {
+  const ok = await api.openInAntigravity(r.path)
+  showToast(ok
+    ? { icon: '🚀', text: `Abrindo ${r.name} no Antigravity…`, ms: 2200 }
+    : { icon: '⚠️', text: 'Antigravity não encontrado — verifique a instalação', alert: true, ms: 3500 })
+}
+function openReposBtn(o: Org) {
+  const list = o.repos || []
+  if (list.length === 1) return openRepo(list[0])
+  if (list.length > 1) { view.value = { kind: 'repos', id: o.id }; return }
+  openConfig(o)
 }
 async function saveConfig() {
   const o = form.org!
@@ -116,11 +141,32 @@ const mrClass = (m: Mr) => ({ draft: m.draft })
 
         <div class="actions">
           <button class="pillbtn" :disabled="!st(o.id).mrs" @click="view = { kind: 'mrs', id: o.id }">MRs</button>
+          <button class="pillbtn" :title="(o.repos?.length || 0) === 1 ? `Abrir ${o.repos![0].name} no Antigravity` : (o.repos?.length ? `Repositórios (${o.repos.length})` : 'Configurar repositórios no Antigravity')" @click="openReposBtn(o)">🚀{{ (o.repos?.length || 0) > 1 ? ` ${o.repos!.length}` : '' }}</button>
           <button class="pillbtn" :disabled="!o.gitlab.url" title="Abrir o GitLab no navegador" @click="openUrl(gitlabHome(o))">GitLab ↗</button>
           <button class="pillbtn" :disabled="!st(o.id).hasToken || st(o.id).mrLoading" title="Atualizar" @click="loadMrs(o, true)">↻</button>
         </div>
       </div>
       <div v-if="!S.orgs.length" class="empty">Nenhum órgão. Clique em “+ Órgão”.</div>
+    </div>
+  </div>
+
+  <!-- ================= REPOSITÓRIOS (ANTIGRAVITY) ================= -->
+  <div v-else-if="view.kind === 'repos' && org" class="work" :style="{ '--c': org.color }">
+    <div class="top">
+      <button class="pillbtn" @click="view = { kind: 'cards' }">‹ Voltar</button>
+      <b class="ttl">{{ org.name }} · Repositórios</b>
+      <button class="pillbtn" @click="openConfig(org)">⚙ Configurar</button>
+    </div>
+    <div class="repolist">
+      <div v-for="(r, idx) in (org.repos || [])" :key="idx" class="repocard">
+        <div class="repometa">
+          <b>{{ r.name }}</b>
+          <span class="mute mono tiny">{{ r.path }}</span>
+        </div>
+        <button class="pillbtn" title="Abrir pasta no Explorer" @click="openUrl(r.path)">📂</button>
+        <button class="pillbtn primary" @click="openRepo(r)">🚀 Antigravity</button>
+      </div>
+      <div v-if="!org.repos?.length" class="empty small">Nenhum repositório configurado.</div>
     </div>
   </div>
 
@@ -214,6 +260,18 @@ const mrClass = (m: Mr) => ({ draft: m.draft })
         </div>
         <span class="tiny" :class="form.testMsg.startsWith('❌') ? 'danger' : 'mute'">{{ form.testMsg }}</span>
       </div>
+      <div class="sec span2">
+        <div class="row2">
+          <span class="set-label">🚀 REPOSITÓRIOS (ANTIGRAVITY)</span>
+          <button type="button" class="pillbtn" @click="addRepo">+ Pasta</button>
+        </div>
+        <div v-for="(r, idx) in (form.org.repos || [])" :key="idx" class="row2">
+          <input v-model="r.name" class="in rname" placeholder="Nome" maxlength="32">
+          <input v-model="r.path" class="in mono" placeholder="C:\projetos\meu-repo">
+          <button type="button" class="pillbtn danger" title="Remover" @click="removeRepo(idx)">✕</button>
+        </div>
+        <span v-if="!form.org.repos?.length" class="mute tiny">Adicione pastas locais para abrir direto no Antigravity pelo cartão do órgão.</span>
+      </div>
     </div>
   </form>
 </template>
@@ -271,4 +329,11 @@ a { color: var(--accent-2); cursor: pointer; text-decoration: underline; }
 .adapters { display: flex; flex-direction: column; gap: 2px; max-height: 90px; overflow-y: auto; padding: 4px; border-radius: 8px; background: rgba(0,0,0,.25); }
 .ad { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 6px; font-size: 11px; text-align: left; white-space: nowrap; overflow: hidden; }
 .ad:hover { background: rgba(255,255,255,.08); }
+.span2 { grid-column: 1 / -1; }
+.rname { max-width: 150px; flex: 0 0 150px !important; }
+.repolist { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.repocard { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.04); border-left: 2px solid var(--c); }
+.repometa { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.repometa b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.repometa span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>

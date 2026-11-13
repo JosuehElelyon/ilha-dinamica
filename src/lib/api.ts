@@ -61,7 +61,9 @@ export const api = {
 
   // ações e app
   runAction: (target: string) => invoke<boolean>('run_action', { target }),
+  openInAntigravity: (path: string) => invoke<boolean>('open_in_antigravity', { path }),
   pickPath: (kind: 'file' | 'folder') => invoke<string | null>('pick_path', { kind }),
+  fetchIcs: (url: string) => invoke<string>('fetch_ics', { url }),
   notify: (title: string, body: string) => invoke<void>('notify', { title, body }),
   relaunchAdmin: () => invoke<boolean>('relaunch_admin'),
   quit: () => invoke<void>('quit_app'),

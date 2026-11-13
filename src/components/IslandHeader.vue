@@ -48,7 +48,9 @@ function center() { island.menuOpen = false; api.resetPosition() }
       <label><input type="checkbox" :checked="S.locked" @change="save('locked', ($event.target as HTMLInputElement).checked)"> Travar posição</label>
       <button @click="center">📍 Voltar ao centro do topo</button>
       <div class="sep" />
-      <button :disabled="island.update.checking || island.update.installing" @click="checkUpdate(true)">
+      <button v-if="island.update.available" :disabled="island.update.installing" @click="installUpdate()">
+        ⬆️ {{ island.update.installing ? `Instalando ${island.update.available}…` : `Instalar v${island.update.available} agora` }}</button>
+      <button v-else :disabled="island.update.checking || island.update.installing" @click="checkUpdate(true)">
         ⬆️ Verificar atualizações <span class="ver">v{{ island.version }}</span></button>
       <span v-if="island.update.status" class="status">{{ island.update.status }}</span>
       <label><input type="checkbox" :checked="S.autoUpdate" @change="save('autoUpdate', ($event.target as HTMLInputElement).checked)"> Atualizar automaticamente</label>

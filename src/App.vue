@@ -6,7 +6,7 @@ import { api } from './lib/api'
 import { hexHue, hashHue, hueFromImage } from './lib/format'
 import { loadWeather } from './lib/weather'
 import { S, loadSettings, activeModules } from './store/settings'
-import { island, live, now, checkAll, showToast, alertIsland, reminders, remDate, checkUpdate, setAutoUpdateGetter } from './store/state'
+import { island, live, now, checkAll, showToast, alertIsland, reminders, remDate, checkUpdate, setAutoUpdateGetter, refreshMeetings } from './store/state'
 import type { Devices, VolInfo } from './lib/types'
 
 import IslandPill from './components/IslandPill.vue'
@@ -176,6 +176,8 @@ onMounted(async () => {
   setInterval(loadWeather, 30 * 60 * 1000)
   initWork()
   initGames()
+  refreshMeetings(S.icsUrl)
+  setInterval(() => refreshMeetings(S.icsUrl), 15 * 60 * 1000)
   // procura atualizações 10 s depois de abrir e a cada 6 horas
   setAutoUpdateGetter(() => S.autoUpdate)
   setTimeout(() => checkUpdate(), 10_000)

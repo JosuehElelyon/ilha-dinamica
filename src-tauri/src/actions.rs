@@ -26,6 +26,50 @@ pub fn run_action(target: String) -> bool {
     }
 }
 
+/// Abre uma pasta diretamente no Antigravity (procura no PATH e nos caminhos padrão de instalação)
+#[tauri::command]
+pub fn open_in_antigravity(path: String) -> bool {
+    let p = path.trim().replace('"', "");
+    if p.is_empty() {
+        return false;
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        use std::path::PathBuf;
+        let candidates = [
+            std::env::var("LOCALAPPDATA")
+                .ok()
+                .map(|d| PathBuf::from(d).join("Programs\\Antigravity\\Antigravity.exe")),
+            std::env::var("LOCALAPPDATA")
+                .ok()
+                .map(|d| PathBuf::from(d).join("Programs\\Antigravity\\bin\\antigravity.cmd")),
+            std::env::var("ProgramFiles")
+                .ok()
+                .map(|d| PathBuf::from(d).join("Antigravity\\Antigravity.exe")),
+        ];
+        for exe in candidates.into_iter().flatten() {
+            if exe.exists() {
+                if exe.extension().and_then(|s| s.to_str()) == Some("cmd") {
+                    return crate::util::hidden("cmd.exe")
+                        .raw_arg(format!("/d /s /c \"\"{}\" \"{}\"\"", exe.display(), p))
+                        .spawn()
+                        .is_ok();
+                }
+                return crate::util::hidden(&exe.to_string_lossy()).arg(&p).spawn().is_ok();
+            }
+        }
+        crate::util::hidden("cmd.exe")
+            .raw_arg(format!("/d /s /c antigravity \"{p}\""))
+            .spawn()
+            .is_ok()
+    }
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("antigravity").arg(&p).spawn().is_ok()
+    }
+}
+
 #[tauri::command]
 pub async fn pick_path(app: AppHandle, kind: String) -> Option<String> {
     let win = app.get_webview_window("main");
