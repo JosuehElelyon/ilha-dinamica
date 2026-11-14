@@ -497,3 +497,39 @@ pub fn phone_ingest_demo_signal(
     ingest_phone_packet(&app, pkt);
     build_snapshot(&app)
 }
+
+#[tauri::command]
+pub fn phone_send_clipboard_to_phone(app: AppHandle) -> Result<String, String> {
+    let text = arboard::Clipboard::new()
+        .and_then(|mut c| c.get_text())
+        .map_err(|e| format!("Falha ao ler clipboard do PC: {e}"))?;
+    if text.trim().is_empty() {
+        return Err("Área de transferência do PC está vazia.".into());
+    }
+    let preview: String = text.chars().take(48).collect();
+    phone_bridge::enqueue_command(
+        &app,
+        assistant_core::bridge::PcToPhoneCommand::Clipboard {
+            text,
+            ts: now_ts(),
+        },
+    );
+    Ok(preview)
+}
+
+#[tauri::command]
+pub fn phone_ring_phone(app: AppHandle, message: Option<String>) {
+    phone_bridge::enqueue_command(
+        &app,
+        assistant_core::bridge::PcToPhoneCommand::Ping {
+            message: message.unwrap_or_else(|| "Ilha Dinâmica chamando este celular!".into()),
+            ts: now_ts(),
+        },
+    );
+}
+
+#[tauri::command]
+pub fn phone_set_auto_pause_on_call(state: State<AssistantState>, enabled: bool) -> bool {
+    *state.bridge.auto_pause_on_call.lock().unwrap() = enabled;
+    enabled
+}

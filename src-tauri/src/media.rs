@@ -152,3 +152,21 @@ pub fn media_cmd(cmd: String) {
     #[cfg(not(windows))]
     let _ = cmd;
 }
+
+pub fn pause_if_playing() {
+    #[cfg(windows)]
+    {
+        imp::init_thread();
+        if let Ok(mgr) = imp::manager() {
+            if let Ok(session) = mgr.GetCurrentSession() {
+                if let Ok(info) = session.GetPlaybackInfo() {
+                    if info.PlaybackStatus().ok()
+                        == Some(windows::Media::Control::GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing)
+                    {
+                        let _ = session.TryPauseAsync().and_then(|op| op.get());
+                    }
+                }
+            }
+        }
+    }
+}

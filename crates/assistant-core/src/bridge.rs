@@ -118,6 +118,23 @@ pub fn merge_handshake_device(
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum PcToPhoneCommand {
+    Clipboard { text: String, ts: i64 },
+    Ping { message: String, ts: i64 },
+    Notification { title: String, body: String, ts: i64 },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "action", rename_all = "snake_case")]
+pub enum PhoneToPcAction {
+    MediaToggle,
+    MediaNext,
+    MediaPrev,
+    ToggleMute,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -140,5 +157,18 @@ mod tests {
             build_webhook_url("192.168.0.15", 47821, "abc123"),
             "http://192.168.0.15:47821/api/packet?token=abc123"
         );
+    }
+
+    #[test]
+    fn serializes_bidirectional_commands() {
+        let cmd = PcToPhoneCommand::Clipboard {
+            text: "https://ilha.dev".into(),
+            ts: 1700000100,
+        };
+        let json = serde_json::to_string(&cmd).unwrap();
+        assert!(json.contains(r#""type":"clipboard""#));
+
+        let act: PhoneToPcAction = serde_json::from_str(r#"{"action":"media_toggle"}"#).unwrap();
+        assert_eq!(act, PhoneToPcAction::MediaToggle);
     }
 }

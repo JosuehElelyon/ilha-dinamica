@@ -8,7 +8,8 @@ import { S, save } from '../../store/settings'
 import {
   addImportantDate, assistant, cancelGithubDeviceFlow, connectApple, connectGitHub,
   deleteImportantDate, disconnectAccount, enableUsbBridge, openLoginModal, primaryPhone,
-  refreshAssistant, rotatePairingToken, startGithubDeviceFlow, syncGoogle, syncWindowsCalendar,
+  refreshAssistant, ringPhone, rotatePairingToken, sendBirthdayWish, sendClipboardToPhone,
+  startGithubDeviceFlow, syncGoogle, syncWindowsCalendar, toggleAutoPauseOnCall,
   triggerTestPhoneSignal
 } from '../../store/assistant'
 import { island, showToast } from '../../store/state'
@@ -168,6 +169,7 @@ function daysBadge(n: number) {
                 <div class="row-sub mute">{{ pad(d.day) }}/{{ pad(d.month) }} · {{ d.sourceProvider }}</div>
               </div>
               <span class="when-pill" :class="{ hot: d.daysUntil === 0 }">{{ daysBadge(d.daysUntil) }}</span>
+              <button v-if="d.daysUntil === 0 && d.kind === 'birthday'" class="pillbtn tiny" title="Copiar e enviar parabéns" @click="sendBirthdayWish(d.personName || d.title)">🎉 Parabéns</button>
               <button v-if="d.id.startsWith('custom-')" class="del-x" title="Remover" @click="deleteImportantDate(d.id)">✕</button>
             </div>
             <div v-if="!assistant.snap.upcomingDates.length" class="empty-sm">Sem datas nos próximos 30 dias</div>
@@ -396,9 +398,12 @@ function daysBadge(n: number) {
         </div>
 
         <div class="test-row">
-          <span class="mute small">Simular sinal no avatar:</span>
-          <button class="pillbtn tiny" @click="triggerTestPhoneSignal('call', 'Mãe', '+55 11 99999-0000', phoneMode)">📞 Ligação</button>
-          <button class="pillbtn tiny" @click="triggerTestPhoneSignal('notification', 'WhatsApp', 'Reunião movida para 15h', phoneMode)">💬 Msg</button>
+          <button class="pillbtn tiny" title="Enviar clipboard do PC para o celular" @click="sendClipboardToPhone">📋 Clip → Cel</button>
+          <button class="pillbtn tiny" title="Fazer o celular tocar/vibrar" @click="ringPhone()">🔔 Tocar</button>
+          <button class="pillbtn tiny" :class="{ primary: assistant.autoPauseOnCall }" title="Pausar mídia do PC automaticamente ao receber ligação" @click="toggleAutoPauseOnCall">
+            {{ assistant.autoPauseOnCall ? '🔇 Auto-pausa' : '🔊 Sem pausa' }}
+          </button>
+          <button class="pillbtn tiny" title="Simular ligação no avatar" @click="triggerTestPhoneSignal('call', 'Mãe', '+55 11 99999-0000', phoneMode)">📞 Teste</button>
         </div>
       </section>
     </div>

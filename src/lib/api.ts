@@ -122,6 +122,9 @@ export const api = {
   phoneEnableUsbBridge: () => invoke<string[]>('phone_enable_usb_bridge'),
   phoneIngestDemoSignal: (kind: string, title: string, body: string, transport: string) =>
     invoke<AssistantSnapshot>('phone_ingest_demo_signal', { kind, title, body, transport }),
+  phoneSendClipboard: () => invoke<string>('phone_send_clipboard_to_phone'),
+  phoneRing: (message?: string) => invoke<void>('phone_ring_phone', { message: message ?? null }),
+  phoneSetAutoPauseOnCall: (enabled: boolean) => invoke<boolean>('phone_set_auto_pause_on_call', { enabled }),
 
   // eventos vindos do Rust
   onHover: (cb: (inside: boolean) => void) => on('hover', cb),

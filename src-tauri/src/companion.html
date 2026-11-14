@@ -56,6 +56,15 @@
       </div>
     </div>
 
+    <div class="card" id="pcInboxCard" style="display:none;border-color:rgba(91,124,255,.45);background:rgba(91,124,255,.12)">
+      <div class="row" style="justify-content:space-between">
+        <div class="label" id="pcInboxTitle">Recebido do PC</div>
+        <button style="padding:4px 9px;font-size:12px" onclick="document.getElementById('pcInboxCard').style.display='none'">✕</button>
+      </div>
+      <div id="pcInboxBody" style="font-size:13.5px;word-break:break-word"></div>
+      <button class="primary" id="pcInboxCopyBtn" style="display:none" onclick="copyFromPc()">📋 Copiar no Celular</button>
+    </div>
+
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div>
@@ -67,6 +76,16 @@
       <div class="grid2">
         <button class="primary" onclick="sendPing()">🔔 Pingar Avatar</button>
         <button onclick="sendQuickCall()">📞 Testar Chamada</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">Controle Remoto do PC</div>
+      <div class="grid2">
+        <button onclick="pcAction('media_prev')">⏮ Anterior</button>
+        <button class="primary" onclick="pcAction('media_toggle')">⏯ Play / Pause</button>
+        <button onclick="pcAction('media_next')">⏭ Próxima</button>
+        <button onclick="pcAction('toggle_mute')">🔇 Mutar PC</button>
       </div>
     </div>
 
@@ -222,7 +241,82 @@
       } catch (e) { log(e.message, false); }
     }
 
+    let lastPcClip = '';
+    function playChime() {
+      try {
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [523.25, 659.25, 783.99].forEach((freq, i) => {
+          const osc = ctx.createOscillator(), gain = ctx.createGain();
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.28);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + i * 0.12);
+          osc.stop(ctx.currentTime + i * 0.12 + 0.3);
+        });
+      } catch {}
+    }
+
+    async function copyFromPc() {
+      if (!lastPcClip) return;
+      try {
+        await navigator.clipboard.writeText(lastPcClip);
+        log('Copiado para a área de transferência do celular!');
+      } catch {
+        log('Selecione e copie o texto exibido acima.', false);
+      }
+    }
+
+    async function pcAction(action) {
+      if (!token) { log('Informe o token de pareamento.', false); return; }
+      try {
+        const r = await fetch('/api/pc-action?token=' + encodeURIComponent(token), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action })
+        });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        log('Comando enviado ao PC: ' + action);
+      } catch (e) { log(e.message, false); }
+    }
+
+    async function pollPcCommands() {
+      if (!token) return;
+      try {
+        const r = await fetch('/api/pc-commands?token=' + encodeURIComponent(token));
+        if (!r.ok) return;
+        const j = await r.json();
+        for (const cmd of (j.commands || [])) {
+          const card = document.getElementById('pcInboxCard');
+          const title = document.getElementById('pcInboxTitle');
+          const body = document.getElementById('pcInboxBody');
+          const copyBtn = document.getElementById('pcInboxCopyBtn');
+          card.style.display = 'flex';
+          if (cmd.type === 'clipboard') {
+            lastPcClip = cmd.text;
+            title.textContent = '📋 Clipboard recebido do PC';
+            body.textContent = cmd.text;
+            copyBtn.style.display = 'block';
+            navigator.clipboard?.writeText(cmd.text).catch(() => {});
+            log('Clipboard recebido do PC!');
+          } else if (cmd.type === 'ping') {
+            title.textContent = '🔔 Chamado do PC';
+            body.textContent = cmd.message || 'O PC chamou este celular!';
+            copyBtn.style.display = 'none';
+            playChime();
+            log('Ping recebido do PC!');
+          } else if (cmd.type === 'notification') {
+            title.textContent = '✨ ' + (cmd.title || 'Ilha Dinâmica');
+            body.textContent = cmd.body || '';
+            copyBtn.style.display = 'none';
+          }
+        }
+      } catch {}
+    }
+
     if (token) connectNow();
+    setInterval(pollPcCommands, 2500);
   </script>
 </body>
 </html>

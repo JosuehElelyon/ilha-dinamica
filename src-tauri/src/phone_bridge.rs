@@ -3,7 +3,8 @@
 
 use assistant_core::bridge::{
     build_companion_url, build_qr_pairing_uri, build_webhook_url, generate_pairing_token,
-    merge_handshake_device, packet_to_signal, parse_bridge_packet, PhoneBridgePacket,
+    merge_handshake_device, packet_to_signal, parse_bridge_packet, PcToPhoneCommand,
+    PhoneBridgePacket, PhoneToPcAction,
 };
 use assistant_core::domain::{PairingInfo, PhoneDevice, PhoneTransport};
 use std::io::{BufRead, BufReader, Read, Write};
@@ -22,6 +23,8 @@ const COMPANION_MANIFEST: &str = r##"{"name":"Ilha Dinâmica Companion","short_n
 pub struct BridgeRuntime {
     pub port: Mutex<u16>,
     pub token: Mutex<String>,
+    pub outbox: Mutex<Vec<PcToPhoneCommand>>,
+    pub auto_pause_on_call: Mutex<bool>,
 }
 
 impl Default for BridgeRuntime {
@@ -29,7 +32,34 @@ impl Default for BridgeRuntime {
         Self {
             port: Mutex::new(DEFAULT_PORT),
             token: Mutex::new(String::new()),
+            outbox: Mutex::new(Vec::new()),
+            auto_pause_on_call: Mutex::new(true),
         }
+    }
+}
+
+pub fn enqueue_command(app: &AppHandle, cmd: PcToPhoneCommand) {
+    let state = app.state::<crate::assistant::AssistantState>();
+    let mut box_q = state.bridge.outbox.lock().unwrap();
+    box_q.push(cmd);
+    if box_q.len() > 20 {
+        let excess = box_q.len() - 20;
+        box_q.drain(0..excess);
+    }
+}
+
+pub fn drain_commands(app: &AppHandle) -> Vec<PcToPhoneCommand> {
+    let state = app.state::<crate::assistant::AssistantState>();
+    let mut box_q = state.bridge.outbox.lock().unwrap();
+    std::mem::take(&mut *box_q)
+}
+
+pub fn execute_pc_action(app: &AppHandle, act: PhoneToPcAction) {
+    match act {
+        PhoneToPcAction::MediaToggle => crate::media::media_cmd("toggle".into()),
+        PhoneToPcAction::MediaNext => crate::media::media_cmd("next".into()),
+        PhoneToPcAction::MediaPrev => crate::media::media_cmd("prev".into()),
+        PhoneToPcAction::ToggleMute => crate::audio::toggle_mute_app(app),
     }
 }
 
@@ -233,6 +263,34 @@ fn handle_http_connection(mut reader: BufReader<TcpStream>, first_line: String, 
         return;
     }
 
+    if method == "GET" && path == "/api/pc-commands" {
+        let supplied = query_token(&target).or(bearer_token);
+        if supplied.as_deref() != Some(expected.as_str()) {
+            write_http(&mut stream, "401 Unauthorized", "application/json", b"{\"ok\":false,\"err\":\"token_invalido\"}");
+            return;
+        }
+        let cmds = drain_commands(&app);
+        let payload = serde_json::json!({ "ok": true, "commands": cmds }).to_string();
+        write_http(&mut stream, "200 OK", "application/json", payload.as_bytes());
+        return;
+    }
+
+    if method == "POST" && path == "/api/pc-action" {
+        let supplied = query_token(&target).or(bearer_token);
+        if supplied.as_deref() != Some(expected.as_str()) {
+            write_http(&mut stream, "401 Unauthorized", "application/json", b"{\"ok\":false,\"err\":\"token_invalido\"}");
+            return;
+        }
+        let raw_json = String::from_utf8_lossy(&body);
+        let Ok(act) = serde_json::from_str::<PhoneToPcAction>(raw_json.trim()) else {
+            write_http(&mut stream, "400 Bad Request", "application/json", b"{\"ok\":false,\"err\":\"acao_invalida\"}");
+            return;
+        };
+        execute_pc_action(&app, act);
+        write_http(&mut stream, "200 OK", "application/json", b"{\"ok\":true}");
+        return;
+    }
+
     if method == "POST" && (path == "/api/packet" || path == "/api/signal") {
         let raw_json = String::from_utf8_lossy(&body);
         let Ok(pkt) = parse_bridge_packet(&raw_json) else {
@@ -388,6 +446,17 @@ pub fn apply_packet_to_db(
         }
         PhoneBridgePacket::Ping { .. } => {
             let _ = app.emit("phone-ping", ts);
+        }
+        PhoneBridgePacket::IncomingCall { .. } => {
+            let auto_pause = *app
+                .state::<crate::assistant::AssistantState>()
+                .bridge
+                .auto_pause_on_call
+                .lock()
+                .unwrap();
+            if auto_pause {
+                std::thread::spawn(|| crate::media::pause_if_playing());
+            }
         }
         _ => {}
     }

@@ -175,6 +175,9 @@ fn main() {
             assistant::phone_rotate_token,
             assistant::phone_enable_usb_bridge,
             assistant::phone_ingest_demo_signal,
+            assistant::phone_send_clipboard_to_phone,
+            assistant::phone_ring_phone,
+            assistant::phone_set_auto_pause_on_call,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

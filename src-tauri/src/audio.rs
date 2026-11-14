@@ -281,3 +281,8 @@ pub fn set_device(state: State<AudioState>, id: String) {
 pub fn refresh_devices(state: State<AudioState>) {
     send(&state, Cmd::Refresh);
 }
+
+pub fn toggle_mute_app(app: &AppHandle) {
+    let state = app.state::<AudioState>();
+    send(&state, Cmd::ToggleMute);
+}

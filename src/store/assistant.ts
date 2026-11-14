@@ -25,6 +25,7 @@ export const assistant = reactive({
   syncing: false,
   error: '',
   onboardingDismissed: false,
+  autoPauseOnCall: true,
   snap: structuredClone(EMPTY_SNAP) as AssistantSnapshot,
   pairing: null as PairingInfo | null,
   githubDevice: null as GithubDeviceChallenge | null
@@ -218,6 +219,38 @@ export async function enableUsbBridge() {
 
 export async function triggerTestPhoneSignal(kind: string, title: string, body: string, transport: string) {
   assistant.snap = await api.phoneIngestDemoSignal(kind, title, body, transport)
+}
+
+export async function sendClipboardToPhone() {
+  assistant.error = ''
+  try {
+    const preview = await api.phoneSendClipboard()
+    showToast({ icon: '📋', text: `Enviado ao celular: ${preview}`, ms: 2600 })
+  } catch (e) {
+    assistant.error = String(e)
+  }
+}
+
+export async function ringPhone() {
+  await api.phoneRing()
+  showToast({ icon: '🔔', text: 'Chamado enviado para o celular!', ms: 2400 })
+}
+
+export async function toggleAutoPauseOnCall() {
+  const next = !assistant.autoPauseOnCall
+  assistant.autoPauseOnCall = await api.phoneSetAutoPauseOnCall(next)
+  showToast({
+    icon: assistant.autoPauseOnCall ? '🔇' : '🔊',
+    text: assistant.autoPauseOnCall ? 'Pausar mídia ao receber ligação: ON' : 'Pausar mídia ao receber ligação: OFF',
+    ms: 2400
+  })
+}
+
+export function sendBirthdayWish(name: string) {
+  const msg = `Feliz aniversário, ${name}! 🎉🎂 Tudo de bom!`
+  api.copy(msg)
+  showToast({ icon: '🎉', text: `Parabéns copiado para ${name}!`, ms: 2600 })
+  api.runAction(`https://wa.me/?text=${encodeURIComponent(msg)}`)
 }
 
 const listenersAttached = ref(false)

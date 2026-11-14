@@ -276,6 +276,9 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
     }
     return mockAssistantSnapshot()
   },
+  phone_send_clipboard_to_phone: () => 'https://github.com/JosuehElelyon/ilha-dinamica',
+  phone_ring_phone: () => undefined,
+  phone_set_auto_pause_on_call: (a) => !!a.enabled,
   check_update: () => ({ available: true, version: '2.2.0', current: '2.1.0', notes: '' }),
   install_update: () => undefined,
   reset_position: () => emit('anchor', { x: 'center', y: 'top' })
