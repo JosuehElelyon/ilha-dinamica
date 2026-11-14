@@ -3,6 +3,7 @@
 defineProps<{ name: string }>()
 const PATHS: Record<string, string> = {
   home: '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>',
+  assistant: '<path d="M12 3l1.9 4.5L18.5 9.4l-4.6 1.9L12 16l-1.9-4.7L5.5 9.4l4.6-1.9z"/><path d="M19 15l.9 2.1 2.1.9-2.1.9L19 21l-.9-2.1-2.1-.9 2.1-.9z"/>',
   actions: '<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>',
   clips: '<rect x="8" y="3" width="11" height="14" rx="2"/><path d="M5 7v12a2 2 0 0 0 2 2h9"/>',
   notes: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7"/>',

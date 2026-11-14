@@ -182,9 +182,154 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
     ]
   }),
   bt_toggle_radio: (a) => !!a.enable,
+  assistant_snapshot: () => mockAssistantSnapshot(),
+  assistant_google_connect: () => {
+    mockGoogleConnected = true
+    return mockAssistantSnapshot()
+  },
+  assistant_google_sync: () => mockAssistantSnapshot(),
+  assistant_google_disconnect: () => {
+    mockGoogleConnected = false
+    return mockAssistantSnapshot()
+  },
+  assistant_sync_windows: () => {
+    mockWinConnected = true
+    return mockAssistantSnapshot()
+  },
+  assistant_github_connect: () => {
+    mockGithubConnected = true
+    return mockAssistantSnapshot()
+  },
+  assistant_apple_connect: () => {
+    mockAppleConnected = true
+    return mockAssistantSnapshot()
+  },
+  assistant_disconnect_account: (a) => {
+    const id = String(a.accountId || '')
+    if (id.startsWith('google:')) mockGoogleConnected = false
+    if (id.startsWith('github:')) mockGithubConnected = false
+    if (id.startsWith('apple:')) mockAppleConnected = false
+    return mockAssistantSnapshot()
+  },
+  assistant_add_important_date: (a) => {
+    mockDates.unshift({
+      id: 'custom-' + Date.now(),
+      title: a.kind === 'birthday' ? `Aniversário de ${String(a.name)}` : String(a.name),
+      personName: String(a.name),
+      kind: String(a.kind),
+      month: Number(a.month),
+      day: Number(a.day),
+      daysUntil: 0,
+      turningAge: a.yearOptional ? new Date().getFullYear() - Number(a.yearOptional) : null,
+      sourceProvider: 'local'
+    })
+    return mockAssistantSnapshot()
+  },
+  assistant_delete_important_date: (a) => {
+    mockDates = mockDates.filter(d => d.id !== String(a.id))
+    return mockAssistantSnapshot()
+  },
+  phone_pairing_info: () => ({
+    qrUri: `ilha://pair?v=1&host=192.168.0.15&port=47821&token=${mockPairToken}&pc=DESKTOP-JOSUEH`,
+    host: '192.168.0.15',
+    port: 47821,
+    token: mockPairToken,
+    adbAvailable: true,
+    adbDevices: ['R58X30ABCD'],
+    btPairedPhones: ['Galaxy S24 Ultra (conectado)', 'iPhone de Josueh']
+  }),
+  phone_rotate_token: () => {
+    mockPairToken = 'tok_' + Math.random().toString(36).slice(2, 12)
+    return handlers.phone_pairing_info({})
+  },
+  phone_enable_usb_bridge: () => ['R58X30ABCD'],
+  phone_ingest_demo_signal: (a) => {
+    const kind = String(a.kind || 'notification')
+    const title = String(a.title || 'Nova mensagem')
+    const body = String(a.body || '')
+    const tr = String(a.transport || 'lan') as 'lan' | 'usb' | 'bluetooth'
+    mockPhone.activeTransport = tr
+    if (kind === 'battery') mockPhone.batteryPct = Number(title) || 12
+    else {
+      mockSignals.unshift({
+        id: 'sig-' + Date.now(),
+        deviceId: mockPhone.id,
+        kind,
+        title: kind === 'call' ? title : title,
+        body,
+        appName: kind === 'call' ? 'Telefone' : 'WhatsApp',
+        ts: Math.floor(Date.now() / 1000)
+      })
+    }
+    return mockAssistantSnapshot()
+  },
   check_update: () => ({ available: true, version: '2.2.0', current: '2.1.0', notes: '' }),
   install_update: () => undefined,
   reset_position: () => emit('anchor', { x: 'center', y: 'top' })
+}
+
+let mockGoogleConnected = true
+let mockWinConnected = true
+let mockGithubConnected = true
+let mockAppleConnected = false
+let mockPairToken = '9f4a21c7e8b3d019a52c81ef'
+
+const curDate = new Date()
+const curM = curDate.getMonth() + 1
+const curD = curDate.getDate()
+let mockDates: import('./types').UpcomingDate[] = [
+  { id: 'b-amanda', title: 'Aniversário de Amanda Silva', personName: 'Amanda Silva', kind: 'birthday', month: curM, day: curD, daysUntil: 0, turningAge: 29, sourceProvider: 'google' },
+  { id: 'b-marcos', title: 'Aniversário de Marcos Paulo', personName: 'Marcos Paulo', kind: 'birthday', month: curM, day: Math.min(28, curD + 2), daysUntil: 2, turningAge: 34, sourceProvider: 'google' },
+  { id: 'h-natal', title: 'Natal', personName: '', kind: 'holiday', month: 12, day: 25, daysUntil: 42, turningAge: null, sourceProvider: 'local' }
+]
+const mockPhone = { id: 'px-s24', name: 'Galaxy S24 Ultra', platform: 'android', connected: true, activeTransport: 'lan' as 'lan' | 'usb' | 'bluetooth', batteryPct: 82, charging: false, lastSeenTs: Math.floor(Date.now() / 1000) }
+const mockSignals = [
+  { id: 's1', deviceId: 'px-s24', kind: 'notification', title: 'Amanda Silva', body: 'Oi! Confirmando nosso almoço hoje às 12h30 😊', appName: 'WhatsApp', ts: Math.floor(Date.now() / 1000) - 180 },
+  { id: 's2', deviceId: 'px-s24', kind: 'notification', title: 'Nubank', body: 'Pix recebido de R$ 150,00', appName: 'Nubank', ts: Math.floor(Date.now() / 1000) - 920 }
+]
+
+function mockAssistantSnapshot() {
+  const nowSec = Math.floor(Date.now() / 1000)
+  const accounts = []
+  if (mockGoogleConnected) accounts.push({ id: 'google:josueh@gmail.com', provider: 'google', label: 'Josueh Elelyon', email: 'josueh@gmail.com', isPrimary: true, status: 'connected', lastSyncTs: nowSec - 120, details: '4 eventos · 128 contatos' })
+  if (mockWinConnected) accounts.push({ id: 'windows:local', provider: 'windows', label: 'Calendário do Windows', email: 'WinRT Local', isPrimary: false, status: 'connected', lastSyncTs: nowSec - 90, details: '3 eventos locais (WinRT)' })
+  if (mockGithubConnected) accounts.push({ id: 'github:JosuehElelyon', provider: 'github', label: '@JosuehElelyon', email: 'josueh@gmail.com', isPrimary: false, status: 'connected', lastSyncTs: nowSec - 300, details: '2 PRs para revisar' })
+  if (mockAppleConnected) accounts.push({ id: 'apple:josueh@icloud.com', provider: 'apple', label: 'Apple iCloud', email: 'josueh@icloud.com', isPrimary: false, status: 'connected', lastSyncTs: nowSec - 400, details: 'CalDAV/CardDAV ativo' })
+
+  const events = [
+    ...(mockGoogleConnected ? [
+      { id: 'ev2', fingerprint: 'fp2', title: 'Almoço Aniversário Amanda', category: 'personal', date: today, startTime: '12:30', endTime: '13:30', startTs: nowSec + 1800, endTs: nowSec + 5400, allDay: false, joinUrl: '', sourceProvider: 'google', accountId: 'google:josueh@gmail.com' },
+      { id: 'ev1', fingerprint: 'fp1', title: 'Alinhamento de Arquitetura', category: 'meeting', date: today, startTime: '14:00', endTime: '14:45', startTs: nowSec + 3600, endTs: nowSec + 6300, allDay: false, joinUrl: 'https://meet.google.com/abc-defg-hij', sourceProvider: 'google', accountId: 'google:josueh@gmail.com' }
+    ] : []),
+    ...(mockWinConnected ? [
+      { id: 'ev3', fingerprint: 'fp3', title: 'Daily — Equipe Core', category: 'meeting', date: today, startTime: '16:00', endTime: '16:20', startTs: nowSec + 7200, endTs: nowSec + 8400, allDay: false, joinUrl: 'https://teams.microsoft.com/l/meetup-join/mock', sourceProvider: 'windows', accountId: 'windows:local' }
+    ] : [])
+  ]
+
+  const alerts = []
+  const callSig = mockSignals.find(s => s.kind === 'call' && nowSec - s.ts <= 90)
+  if (callSig) {
+    alerts.push({ key: 'call:' + callSig.id, level: 'urgent', avatarMood: 'alert', icon: '📞', title: `Ligação: ${callSig.title}`, body: callSig.body || 'Chamada no celular', bubbleText: `📞 ${callSig.title}`, actionLabel: 'Celular', actionTarget: 'tab:assistant:celular', createdTs: nowSec })
+  }
+  const bdayToday = mockDates.find(d => d.daysUntil === 0)
+  if (bdayToday) {
+    alerts.push({ key: 'date:' + bdayToday.id, level: 'celebrate', avatarMood: 'celebrate', icon: '🎂', title: `Hoje: ${bdayToday.title}${bdayToday.turningAge ? ` (${bdayToday.turningAge} anos)` : ''}`, body: 'Não esqueça de dar os parabéns!', bubbleText: `🎂 ${bdayToday.personName || bdayToday.title}!`, actionLabel: 'Ver Datas', actionTarget: 'tab:assistant:hoje', createdTs: nowSec })
+  }
+
+  return {
+    googleConnected: mockGoogleConnected,
+    accounts,
+    upcomingDates: mockDates,
+    todayEvents: events,
+    allEvents: events,
+    peopleCount: mockGoogleConnected ? 128 : 0,
+    phones: [mockPhone],
+    recentSignals: mockSignals,
+    alerts,
+    devItems: mockGithubConnected ? [
+      { id: 'gh1', provider: 'github', repo: 'JosuehElelyon/ilha-dinamica', title: 'feat: ponte PhoneBridge LAN/USB/BT', kind: 'review', url: 'https://github.com/JosuehElelyon/ilha-dinamica', updatedAt: new Date().toISOString() }
+    ] : []
+  }
 }
 
 export const mock = {

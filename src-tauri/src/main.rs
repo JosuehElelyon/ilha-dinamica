@@ -3,23 +3,29 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod actions;
+mod assistant;
 mod audio;
 mod calendar;
 mod clean;
 mod clipboard;
+mod connectors;
 mod data;
 mod games;
 mod gitlab;
+mod google;
 mod hover;
 mod logger;
 mod media;
 mod network;
+mod phone_bridge;
 mod position;
 mod system;
 mod tray;
 mod update;
 mod util;
+mod vault;
 mod vpn;
+mod win_calendar;
 
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
@@ -49,9 +55,11 @@ fn main() {
         .manage(clipboard::ClipState::default())
         .manage(system::SysState::default())
         .manage(audio::AudioState::default())
+        .manage(assistant::AssistantState::default())
         .setup(|app| {
             let handle = app.handle().clone();
             data::load(&handle);
+            assistant::init(&handle);
 
             let win = app.get_webview_window("main").expect("janela principal");
             position::restore(&handle, &win);
@@ -59,7 +67,7 @@ fn main() {
             let _ = win.show();
 
             // o atalho pode estar ocupado por outro programa (ex.: a versão antiga em Electron):
-            // nesse caso a ilha abre normalmente, só sem o atalho
+            // nesse caso a ilha abre normalmente, só sem o o atalho
             if let Err(e) = app.global_shortcut().on_shortcut("ctrl+alt+space", |app, _s, event| {
                 if event.state == ShortcutState::Pressed {
                     let _ = app.emit("toggle", ());
@@ -151,6 +159,20 @@ fn main() {
             network::bt_state,
             network::bt_toggle_radio,
             update::install_update,
+            assistant::assistant_snapshot,
+            assistant::assistant_google_connect,
+            assistant::assistant_google_sync,
+            assistant::assistant_google_disconnect,
+            assistant::assistant_sync_windows,
+            assistant::assistant_github_connect,
+            assistant::assistant_apple_connect,
+            assistant::assistant_disconnect_account,
+            assistant::assistant_add_important_date,
+            assistant::assistant_delete_important_date,
+            assistant::phone_pairing_info,
+            assistant::phone_rotate_token,
+            assistant::phone_enable_usb_bridge,
+            assistant::phone_ingest_demo_signal,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

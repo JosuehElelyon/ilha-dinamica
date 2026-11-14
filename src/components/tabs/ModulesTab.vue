@@ -37,28 +37,28 @@ function move(i: number, d: number) {
 
 <style scoped>
 .mods-wrap {
-  display: flex; flex-direction: column; justify-content: center; gap: 9px;
+  display: flex; flex-direction: column; justify-content: center; gap: 6px;
   overflow: hidden;
 }
 .top { text-align: center; }
 .grid {
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px; width: 100%;
+  gap: 5px 7px; width: 100%;
 }
 .mod {
   display: flex; align-items: center; gap: 5px; min-width: 0;
-  padding: 6px 7px; border-radius: 11px;
+  padding: 4.5px 7px; border-radius: 10px;
   background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.06);
-  font-size: 10.2px;
+  font-size: 10px;
 }
-.mod :deep(.ico) { width: 13px; height: 13px; opacity: .9; }
+.mod :deep(.ico) { width: 12.5px; height: 12.5px; opacity: .9; }
 .nm {
   flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-weight: 500;
 }
 .off { opacity: .45; }
 .acts { display: flex; align-items: center; gap: 1px; flex: none; }
-.mv { color: var(--mute); width: 12px; height: 18px; border-radius: 5px; font-size: 12px; display: grid; place-items: center; }
+.mv { color: var(--mute); width: 12px; height: 16px; border-radius: 5px; font-size: 12px; display: grid; place-items: center; }
 .mv:hover:not(:disabled) { color: #fff; background: rgba(255,255,255,.1); }
 .mv:disabled { opacity: .22; cursor: default; }
 .switch { width: 24px; height: 14px; border-radius: 7px; margin-left: 2px; }

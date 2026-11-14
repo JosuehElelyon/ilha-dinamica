@@ -1,10 +1,10 @@
 <script setup lang="ts">
-// Mascote autônomo no topo da ilha: reaproveita a lógica independente de estados
-// (anda, senta e pisca, pula, brinca e espia) com transform direto na GPU (sem re-render por frame)
-// e pausa automaticamente quando a ilha está recolhida.
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+// Mascote autônomo no topo da ilha: anda, senta, pisca, pula, brinca, espia e
+// reage a alertas proativos do Assistente Pessoal com balão clicável.
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import PetSprite, { type PetMode } from './PetSprite.vue'
 import { S } from '../store/settings'
+import { assistant, handleAlertAction, openAssistant, topAlert } from '../store/assistant'
 
 const props = withDefaults(defineProps<{ busy?: boolean; active?: boolean }>(), {
   busy: false,
@@ -18,6 +18,32 @@ const shadowEl = ref<HTMLElement>()
 const dir = ref<1 | -1>(1)
 const mode = ref<PetMode>('walk')
 const blinking = ref(false)
+
+const bubble = computed(() => {
+  if (topAlert.value) {
+    return {
+      text: topAlert.value.bubbleText,
+      kind: topAlert.value.avatarMood,
+      title: `${topAlert.value.title} — clique para abrir`
+    }
+  }
+  if (!assistant.snap.googleConnected && !assistant.onboardingDismissed) {
+    return {
+      text: '✨ Conectar Google',
+      kind: 'briefing' as const,
+      title: 'Conecte sua conta Google ao Assistente Pessoal'
+    }
+  }
+  return null
+})
+
+function onBubbleClick() {
+  if (topAlert.value) {
+    handleAlertAction(topAlert.value)
+    return
+  }
+  openAssistant('contas')
+}
 
 let animId = 0
 let lastTs = 0
@@ -45,6 +71,13 @@ function syncDom() {
 function pickNextState() {
   const prev = mode.value
   const r = Math.random()
+
+  if (topAlert.value?.avatarMood === 'celebrate' && r < 0.48) {
+    mode.value = 'jump'
+    stateDuration = 0.62
+    stateTimer = 0
+    return
+  }
 
   if (prev === 'jump') {
     if (r < 0.55) {
@@ -186,17 +219,26 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="stageEl" class="pet-stage" aria-hidden="true">
-    <div ref="shadowEl" class="pet-shadow" />
-    <div ref="petEl" class="pet-pos">
-      <PetSprite :pet="S.pet" :mode="mode" :blink="blinking" :busy="busy" :dir="dir" :hide-shadow="true" />
+  <div ref="stageEl" class="pet-stage">
+    <button
+      v-if="bubble"
+      class="pet-bubble"
+      :class="bubble.kind"
+      :title="bubble.title"
+      @click.stop="onBubbleClick"
+    >
+      {{ bubble.text }}
+    </button>
+    <div ref="shadowEl" class="pet-shadow" aria-hidden="true" />
+    <div ref="petEl" class="pet-pos" aria-hidden="true">
+      <PetSprite :pet="S.pet" :mode="mode" :blink="blinking" :busy="busy || !!topAlert" :dir="dir" :hide-shadow="true" />
     </div>
   </div>
 </template>
 
 <style scoped>
 .pet-stage {
-  position: absolute; left: 190px; right: 220px; top: 1px; height: 35px;
+  position: absolute; left: 175px; right: 235px; top: 1px; height: 35px;
   pointer-events: none; overflow: hidden;
 }
 .pet-pos {
@@ -208,5 +250,27 @@ onUnmounted(() => {
   width: 24px; height: 3px; border-radius: 50%;
   background: #000; opacity: .3;
   will-change: transform, opacity;
+}
+.pet-bubble {
+  position: absolute; left: 6px; top: 6px; z-index: 3;
+  max-width: 145px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; line-height: 1.4;
+  background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .16);
+  color: #f4f4f8; pointer-events: auto; backdrop-filter: blur(8px);
+  transition: transform .15s, background .15s;
+}
+.pet-bubble:hover { transform: scale(1.04); background: rgba(255, 255, 255, .18); }
+.pet-bubble.celebrate {
+  background: rgba(255, 196, 61, .16); border-color: rgba(255, 210, 90, .42); color: #ffe599;
+}
+.pet-bubble.alert {
+  background: rgba(255, 107, 94, .2); border-color: rgba(255, 107, 94, .48); color: #ffb8b1;
+}
+.pet-bubble.meeting {
+  background: rgba(91, 124, 255, .2); border-color: rgba(120, 146, 255, .45); color: #d5deff;
+}
+.pet-bubble.briefing {
+  background: rgba(91, 227, 154, .14); border-color: rgba(91, 227, 154, .35); color: #9cf0c2;
 }
 </style>

@@ -34,9 +34,11 @@ import ProcessesTab from './components/tabs/ProcessesTab.vue'
 import ModulesTab from './components/tabs/ModulesTab.vue'
 import SettingsTab from './components/tabs/SettingsTab.vue'
 import PetsTab from './components/tabs/PetsTab.vue'
+import AssistantTab from './components/tabs/AssistantTab.vue'
+import { initAssistant } from './store/assistant'
 
 const TABS: Record<string, Component> = {
-  home: HomeTab, work: WorkTab, games: GamesTab, actions: ActionsTab, tools: ToolsTab, snippets: SnippetsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
+  home: HomeTab, assistant: AssistantTab, work: WorkTab, games: GamesTab, actions: ActionsTab, tools: ToolsTab, snippets: SnippetsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
   cal: CalendarTab, weather: WeatherTab, audio: AudioTab, net: NetworkTab, sys: SystemTab, clean: CleanTab,
   procs: ProcessesTab, modules: ModulesTab, settings: SettingsTab, pets: PetsTab
 }
@@ -189,6 +191,7 @@ onMounted(async () => {
   setInterval(loadWeather, 30 * 60 * 1000)
   initWork()
   initGames()
+  initAssistant()
   refreshMeetings(S.icsUrl)
   setInterval(() => refreshMeetings(S.icsUrl), 15 * 60 * 1000)
   refreshWifi()
