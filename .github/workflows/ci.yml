@@ -1,0 +1,58 @@
+name: CI — Validação Contínua
+
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  core-and-web:
+    name: Core Rust + Frontend Web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: crates/assistant-core -> target
+
+      - name: Testes unitários (assistant-core)
+        run: cargo test --manifest-path crates/assistant-core/Cargo.toml
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck e Build Web (vue-tsc + vite)
+        run: npm run build:web
+
+  windows-rust-check:
+    name: Compilação Windows (src-tauri)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build Web (necessário para tauri::generate_context!)
+        run: npm run build:web
+
+      - name: Cargo Check Windows (Tauri + WinRT)
+        run: cargo check --manifest-path src-tauri/Cargo.toml

@@ -13,6 +13,7 @@
     "dev:web": "vite",
     "build:web": "vue-tsc --noEmit && vite build",
     "typecheck": "vue-tsc --noEmit",
+    "validate": "node scripts/validate.mjs",
     "release": "node scripts/release.mjs"
   },
   "dependencies": {
