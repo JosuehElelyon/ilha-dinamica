@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Topo da ilha: data/clima, "olhinhos", hora e menu •••
 import { computed } from 'vue'
-import BlackCat from './BlackCat.vue'
+import HeaderPet from './HeaderPet.vue'
 import { api } from '../lib/api'
 import { DIAS, MESES, pad } from '../lib/format'
 import { island, live, now, stopwatch, focus, timer, checkUpdate, installUpdate, nextMeeting } from '../store/state'
@@ -20,7 +20,7 @@ const busy = computed(() => stopwatch.running || focus.running || timer.running)
 async function toggleAutostart(e: Event) {
   island.autostart = await api.setAutostart((e.target as HTMLInputElement).checked)
 }
-function open(tab: 'settings') { island.menuOpen = false; island.tab = tab }
+function open(tab: 'settings' | 'pets') { island.menuOpen = false; island.tab = tab }
 
 // segurar a barra do topo e arrastar move a ilha pela tela
 function drag(e: MouseEvent) {
@@ -46,7 +46,7 @@ function center() { island.menuOpen = false; api.resetPosition() }
         </svg>
       </button>
     </span>
-    <BlackCat :busy="busy" />
+    <HeaderPet :busy="busy" :active="island.expanded" />
     <span class="right">
       <button v-if="meet?.joinUrl" class="meetbtn" :title="`Entrar em: ${meet.summary}`" @click.stop="api.runAction(meet.joinUrl)">📹 Entrar</button>
       <button v-if="island.update.available" class="upd" :disabled="island.update.installing"
@@ -63,6 +63,7 @@ function center() { island.menuOpen = false; api.resetPosition() }
     </span>
     <div v-if="island.menuOpen" class="menu" @click.stop>
       <button @click="open('settings')">🎨 Personalizar…</button>
+      <button @click="open('pets')">🐾 Mascote do topo…</button>
       <label><input type="checkbox" :checked="island.autostart" @change="toggleAutostart"> Iniciar com o Windows</label>
       <label><input type="checkbox" :checked="island.pinned" @change="emit('pin', ($event.target as HTMLInputElement).checked)"> Manter aberta</label>
       <label><input type="checkbox" :checked="S.locked" @change="save('locked', ($event.target as HTMLInputElement).checked)"> Travar posição</label>
@@ -96,12 +97,12 @@ header.draggable:active { cursor: grabbing; }
 .wifi-btn:hover { background: rgba(91, 227, 154, .24); transform: scale(1.06); }
 .right { display: flex; align-items: center; gap: 10px; }
 .clock { font-size: 12px; color: var(--txt); font-weight: 600; }
-.menu { position: absolute; right: 16px; top: 36px; z-index: 20; display: flex; flex-direction: column; gap: 2px;
-  padding: 8px; min-width: 220px; background: #1d1d22; border: 1px solid var(--line); border-radius: 14px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.5); font-size: 12px; }
-.menu label, .menu button { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; text-align: left; cursor: pointer; }
+.menu { position: absolute; right: 16px; top: 34px; z-index: 20; display: flex; flex-direction: column; gap: 1px;
+  padding: 6px; min-width: 222px; max-height: 268px; overflow-y: auto; background: #1d1d22; border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.5); font-size: 11.5px; }
+.menu label, .menu button { display: flex; gap: 8px; align-items: center; padding: 4.5px 8px; border-radius: 8px; text-align: left; cursor: pointer; }
 .menu label:hover, .menu button:hover { background: rgba(255,255,255,.06); }
-.note { padding: 6px 8px; color: #5be39a; }
+.note { padding: 4px 8px; color: #5be39a; }
 .sep { height: 1px; background: var(--line); margin: 2px 4px; }
 .ver { margin-left: auto; color: var(--mute); font-family: var(--mono); font-size: 10.5px; }
 .status { padding: 0 8px 4px 32px; color: var(--mute); font-size: 11px; }

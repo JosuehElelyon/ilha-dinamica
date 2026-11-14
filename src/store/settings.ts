@@ -3,6 +3,16 @@ import { api } from '../lib/api'
 import type { Action, Org } from '../lib/types'
 import { DEFAULT_SNIPPETS, type Snippet } from '../lib/snippets'
 
+export type PetId = 'dog' | 'cat' | 'horse' | 'panda' | 'chicken'
+
+export const PETS: { id: PetId; name: string; desc: string; tag: string }[] = [
+  { id: 'dog', name: 'Cachorro', desc: 'Shiba alegre', tag: 'Fiel' },
+  { id: 'cat', name: 'Gatinho', desc: 'Chibi curioso', tag: 'Kawaii' },
+  { id: 'horse', name: 'Cavalinho', desc: 'Crina dourada', tag: 'Ágil' },
+  { id: 'panda', name: 'Pandinha', desc: 'Cachecol zen', tag: 'Zen' },
+  { id: 'chicken', name: 'Galinha', desc: 'Piu saltitante', tag: 'Animada' }
+]
+
 export type ModuleId =
   | 'home' | 'work' | 'games' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
   | 'weather' | 'audio' | 'net' | 'sys' | 'clean' | 'procs'
@@ -65,6 +75,7 @@ export interface Settings {
   icsUrl: string
   homeCards: HomeCardId[]
   focusMinutes: number
+  pet: PetId
 }
 
 const DEFAULTS: Settings = {
@@ -88,7 +99,8 @@ const DEFAULTS: Settings = {
   friendAlerts: true,
   icsUrl: '',
   homeCards: [...DEFAULT_HOME_CARDS],
-  focusMinutes: 25
+  focusMinutes: 25,
+  pet: 'cat'
 }
 
 export const S = reactive<Settings>(structuredClone(DEFAULTS))
@@ -122,6 +134,8 @@ export function loadSettings(saved: Record<string, unknown>) {
   const cards = (Array.isArray(saved.homeCards) ? saved.homeCards : DEFAULT_HOME_CARDS).filter((c): c is HomeCardId => knownCards.includes(c))
   S.homeCards = cards.length ? cards : [...DEFAULT_HOME_CARDS]
   S.focusMinutes = Math.min(180, Math.max(1, Number(S.focusMinutes) || 25))
+  const knownPets: PetId[] = ['dog', 'cat', 'horse', 'panda', 'chicken']
+  if (!knownPets.includes(S.pet)) S.pet = 'cat'
 }
 
 export const activeModules = () => S.modules.filter(m => !S.modulesOff.includes(m))

@@ -33,11 +33,12 @@ import CleanTab from './components/tabs/CleanTab.vue'
 import ProcessesTab from './components/tabs/ProcessesTab.vue'
 import ModulesTab from './components/tabs/ModulesTab.vue'
 import SettingsTab from './components/tabs/SettingsTab.vue'
+import PetsTab from './components/tabs/PetsTab.vue'
 
 const TABS: Record<string, Component> = {
   home: HomeTab, work: WorkTab, games: GamesTab, actions: ActionsTab, tools: ToolsTab, snippets: SnippetsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
   cal: CalendarTab, weather: WeatherTab, audio: AudioTab, net: NetworkTab, sys: SystemTab, clean: CleanTab,
-  procs: ProcessesTab, modules: ModulesTab, settings: SettingsTab
+  procs: ProcessesTab, modules: ModulesTab, settings: SettingsTab, pets: PetsTab
 }
 
 const el = ref<HTMLElement>()

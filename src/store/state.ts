@@ -6,7 +6,7 @@ import { playAlertSound } from '../lib/sound'
 import type { Anchor, Clip, Devices, MediaInfo, Meeting, Reminder, SysInfo, VolInfo } from '../lib/types'
 import { S, save, type ModuleId } from './settings'
 
-export type TabId = ModuleId | 'modules' | 'settings'
+export type TabId = ModuleId | 'modules' | 'settings' | 'pets'
 
 export interface Toast {
   icon?: string
