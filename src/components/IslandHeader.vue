@@ -6,6 +6,7 @@ import { api } from '../lib/api'
 import { DIAS, MESES, pad } from '../lib/format'
 import { island, live, now, stopwatch, focus, timer, checkUpdate, installUpdate, nextMeeting } from '../store/state'
 import { S, save } from '../store/settings'
+import { assistant, openLoginModal } from '../store/assistant'
 
 const emit = defineEmits<{ pin: [boolean] }>()
 const meet = computed(() => nextMeeting())
@@ -62,6 +63,12 @@ function center() { island.menuOpen = false; api.resetPosition() }
       <button class="icon-btn" title="Opções" @click.stop="island.menuOpen = !island.menuOpen">•••</button>
     </span>
     <div v-if="island.menuOpen" class="menu" @click.stop>
+      <button @click="openLoginModal()">
+        🔑 Login
+        <span class="ver" :style="{ color: assistant.snap.googleConnected ? '#5be39a' : '' }">
+          {{ assistant.snap.googleConnected ? 'Google' : 'Entrar' }}
+        </span>
+      </button>
       <button @click="open('assistant')">✨ Assistente Pessoal…</button>
       <button @click="open('settings')">🎨 Personalizar…</button>
       <button @click="open('pets')">🐾 Mascote do topo…</button>

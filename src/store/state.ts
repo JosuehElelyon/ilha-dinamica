@@ -26,6 +26,7 @@ export const island = reactive({
   homeEdit: false,
   menuOpen: false,
   paletteOpen: false,
+  loginOpen: false,
   toast: null as Toast | null,
   // vindos do backend
   isAdmin: false,

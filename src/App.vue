@@ -13,6 +13,7 @@ import IslandPill from './components/IslandPill.vue'
 import IslandHeader from './components/IslandHeader.vue'
 import NavBar from './components/NavBar.vue'
 import CommandPalette from './components/CommandPalette.vue'
+import LoginModal from './components/LoginModal.vue'
 import HomeTab from './components/tabs/HomeTab.vue'
 import ActionsTab from './components/tabs/ActionsTab.vue'
 import ToolsTab from './components/tabs/ToolsTab.vue'
@@ -219,6 +220,7 @@ onMounted(async () => {
       </main>
       <NavBar />
       <CommandPalette v-if="island.paletteOpen" />
+      <LoginModal v-if="island.loginOpen" />
     </div>
   </div>
 </template>

@@ -101,8 +101,8 @@ export const api = {
 
   // assistente pessoal & ponte com celular
   assistantSnapshot: () => invoke<AssistantSnapshot>('assistant_snapshot'),
-  assistantGoogleConnect: (clientId: string, clientSecret?: string) =>
-    invoke<AssistantSnapshot>('assistant_google_connect', { clientId, clientSecret: clientSecret || null }),
+  assistantGoogleConnect: (clientId?: string, clientSecret?: string) =>
+    invoke<AssistantSnapshot>('assistant_google_connect', { clientId: clientId || null, clientSecret: clientSecret || null }),
   assistantGoogleSync: () => invoke<AssistantSnapshot>('assistant_google_sync'),
   assistantGoogleDisconnect: () => invoke<AssistantSnapshot>('assistant_google_disconnect'),
   assistantSyncWindows: () => invoke<AssistantSnapshot>('assistant_sync_windows'),

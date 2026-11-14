@@ -37,6 +37,13 @@ export function openAssistant(subTab: AssistantSubTab = 'hoje') {
   assistant.subTab = subTab
   island.tab = 'assistant'
   island.menuOpen = false
+  island.loginOpen = false
+}
+
+export function openLoginModal() {
+  assistant.error = ''
+  island.menuOpen = false
+  island.loginOpen = true
 }
 
 export function handleAlertAction(alert: ProactiveAlert) {
@@ -65,7 +72,7 @@ export async function refreshAssistant() {
   }
 }
 
-export async function connectGoogle(clientId: string, clientSecret?: string) {
+export async function connectGoogle(clientId?: string, clientSecret?: string) {
   assistant.syncing = true
   assistant.error = ''
   try {

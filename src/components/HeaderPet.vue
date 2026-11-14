@@ -4,7 +4,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import PetSprite, { type PetMode } from './PetSprite.vue'
 import { S } from '../store/settings'
-import { assistant, handleAlertAction, openAssistant, topAlert } from '../store/assistant'
+import { handleAlertAction, openAssistant, topAlert } from '../store/assistant'
 
 const props = withDefaults(defineProps<{ busy?: boolean; active?: boolean }>(), {
   busy: false,
@@ -27,13 +27,6 @@ const bubble = computed(() => {
       title: `${topAlert.value.title} — clique para abrir`
     }
   }
-  if (!assistant.snap.googleConnected && !assistant.onboardingDismissed) {
-    return {
-      text: '✨ Conectar Google',
-      kind: 'briefing' as const,
-      title: 'Conecte sua conta Google ao Assistente Pessoal'
-    }
-  }
   return null
 })
 
@@ -42,7 +35,7 @@ function onBubbleClick() {
     handleAlertAction(topAlert.value)
     return
   }
-  openAssistant('contas')
+  openAssistant('hoje')
 }
 
 let animId = 0

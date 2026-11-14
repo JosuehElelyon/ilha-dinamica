@@ -243,7 +243,7 @@ pub fn assistant_snapshot(app: AppHandle) -> AssistantSnapshot {
 #[tauri::command]
 pub async fn assistant_google_connect(
     app: AppHandle,
-    client_id: String,
+    client_id: Option<String>,
     client_secret: Option<String>,
 ) -> Result<AssistantSnapshot, String> {
     google::start_oauth_pkce(client_id, client_secret).await?;

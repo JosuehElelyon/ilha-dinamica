@@ -117,13 +117,21 @@ pub fn clear_tokens() {
 /// Inicia o fluxo OAuth 2.0 PKCE em servidor loopback local (`127.0.0.1`),
 /// abre o navegador do usuário e troca o `code` por `access_token` + `refresh_token`.
 pub async fn start_oauth_pkce(
-    client_id: String,
+    client_id: Option<String>,
     client_secret: Option<String>,
 ) -> Result<GoogleTokens, String> {
-    let cid = client_id.trim().to_string();
-    if cid.is_empty() {
-        return Err("Informe o Google Client ID (OAuth Desktop App) para autenticar".into());
-    }
+    let cid = client_id
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .or_else(|| option_env!("ILHA_GOOGLE_CLIENT_ID").map(|s| s.trim().to_string()).filter(|s| !s.is_empty()))
+        .or_else(|| std::env::var("ILHA_GOOGLE_CLIENT_ID").ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()))
+        .ok_or_else(|| "OAuth Google do aplicativo não configurado neste build. Abra Config. avançada na tela de Login para informar um Client ID.".to_string())?;
+
+    let client_secret = client_secret
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .or_else(|| option_env!("ILHA_GOOGLE_CLIENT_SECRET").map(|s| s.trim().to_string()).filter(|s| !s.is_empty()))
+        .or_else(|| std::env::var("ILHA_GOOGLE_CLIENT_SECRET").ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()));
 
     let listener = TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();

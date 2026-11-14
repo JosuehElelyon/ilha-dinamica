@@ -6,8 +6,8 @@ import { api } from '../../lib/api'
 import { pad } from '../../lib/format'
 import { S, save } from '../../store/settings'
 import {
-  addImportantDate, assistant, cancelGithubDeviceFlow, connectApple, connectGitHub, connectGoogle,
-  deleteImportantDate, disconnectAccount, enableUsbBridge, primaryPhone,
+  addImportantDate, assistant, cancelGithubDeviceFlow, connectApple, connectGitHub,
+  deleteImportantDate, disconnectAccount, enableUsbBridge, openLoginModal, primaryPhone,
   refreshAssistant, rotatePairingToken, startGithubDeviceFlow, syncGoogle, syncWindowsCalendar,
   triggerTestPhoneSignal
 } from '../../store/assistant'
@@ -23,10 +23,8 @@ const dateName = ref('')
 const dateKind = ref<'birthday' | 'anniversary' | 'custom'>('birthday')
 const dateMd = ref('')
 
-// Formulários das contas
-const openCfg = ref<'' | 'google' | 'github' | 'apple'>('')
-const gClientId = ref(S.googleClientId || '')
-const gSecret = ref('')
+// Formulários das contas (Apple / GitHub em modal sobreposta para nunca sobrepor cards)
+const openCfg = ref<'' | 'github' | 'apple'>('')
 const ghMode = ref<'device' | 'pat'>('device')
 const ghClientId = ref(S.githubClientId || '')
 const ghToken = ref('')
@@ -74,12 +72,6 @@ async function submitDate() {
   dateName.value = ''
   dateMd.value = ''
   showAddDate.value = false
-}
-
-async function doGoogleConnect() {
-  save('googleClientId', gClientId.value.trim())
-  await connectGoogle(gClientId.value.trim(), gSecret.value.trim() || undefined)
-  if (assistant.snap.googleConnected) openCfg.value = ''
 }
 
 async function doGithubConnect() {
@@ -141,7 +133,7 @@ function daysBadge(n: number) {
           <span class="mute small"> — libera aniversários dos contatos, agenda e lembretes inteligentes.</span>
         </div>
         <div class="banner-acts">
-          <button class="pillbtn primary tiny" @click="assistant.subTab = 'contas'; openCfg = 'google'">Conectar Google</button>
+          <button class="pillbtn primary tiny" @click="openLoginModal()">Conectar Google</button>
           <button class="pillbtn tiny" @click="assistant.onboardingDismissed = true">Depois</button>
         </div>
       </div>
@@ -217,104 +209,109 @@ function daysBadge(n: number) {
     </div>
 
     <!-- ================= ABA CONTAS ================= -->
-    <div v-else-if="assistant.subTab === 'contas'" class="contas-grid">
-      <!-- Google (Obrigatória / Principal) -->
-      <div class="acc-card primary-card">
-        <div class="acc-head">
-          <span class="acc-name">🔵 Google <b class="req-tag">Principal</b></span>
-          <span class="chip" :class="googleAcc ? 'ok' : 'warn'">{{ googleAcc ? 'Conectada' : 'Obrigatória' }}</span>
-        </div>
-        <div v-if="openCfg !== 'google'" class="acc-desc mute">
-          {{ googleAcc ? `${googleAcc.email} · ${googleAcc.details}` : 'Agenda, contatos, aniversários e perfil via OAuth PKCE.' }}
-        </div>
-        <div v-if="openCfg === 'google'" class="acc-form">
-          <input v-model="gClientId" type="text" class="in tin" placeholder="Google OAuth Desktop Client ID">
-          <input v-model="gSecret" type="password" class="in tin" placeholder="Client Secret (opcional)">
-          <div class="form-btns">
-            <button class="pillbtn primary tiny" :disabled="!gClientId.trim() || assistant.syncing" @click="doGoogleConnect">Autorizar no Navegador</button>
-            <button class="pillbtn tiny" @click="openCfg = ''">Cancelar</button>
+    <div v-else-if="assistant.subTab === 'contas'" class="contas-wrap">
+      <div class="contas-grid">
+        <!-- Google (Principal) -->
+        <div class="acc-card primary-card">
+          <div class="acc-head">
+            <span class="acc-name">🔵 Google <b class="req-tag">Principal</b></span>
+            <span class="chip" :class="googleAcc ? 'ok' : 'warn'">{{ googleAcc ? 'Conectada' : 'Obrigatória' }}</span>
+          </div>
+          <div class="acc-desc mute">
+            {{ googleAcc ? `${googleAcc.email} · ${googleAcc.details}` : 'Agenda, contatos, aniversários e perfil via Login Google.' }}
+          </div>
+          <div class="acc-acts">
+            <button v-if="!googleAcc" class="pillbtn primary tiny" @click="openLoginModal()">Entrar com Google</button>
+            <template v-else>
+              <button class="pillbtn tiny" :disabled="assistant.syncing" @click="syncGoogle">↻ Sincronizar</button>
+              <button class="pillbtn tiny danger" @click="disconnectAccount(googleAcc.id)">Desconectar</button>
+            </template>
           </div>
         </div>
-        <div v-else class="acc-acts">
-          <button v-if="!googleAcc" class="pillbtn primary tiny" @click="openCfg = 'google'">Conectar Google</button>
+
+        <!-- Windows Calendário Nativo -->
+        <div class="acc-card">
+          <div class="acc-head">
+            <span class="acc-name">🪟 Calendário do Windows</span>
+            <span class="chip" :class="winAcc ? 'ok' : 'muted'">{{ winAcc ? 'Ativo' : 'Pronto' }}</span>
+          </div>
+          <div class="acc-desc mute">
+            {{ winAcc ? winAcc.details : 'Lê compromissos locais do Windows (Outlook/Microsoft) via WinRT sem login.' }}
+          </div>
+          <div class="acc-acts">
+            <button class="pillbtn tiny" :disabled="assistant.syncing" @click="syncWindowsCalendar">↻ Ler Calendário Local</button>
+          </div>
+        </div>
+
+        <!-- Apple iCloud -->
+        <div class="acc-card">
+          <div class="acc-head">
+            <span class="acc-name">🍎 Apple iCloud</span>
+            <span class="chip" :class="appleAcc ? 'ok' : 'muted'">{{ appleAcc ? 'Conectada' : 'Opcional' }}</span>
+          </div>
+          <div class="acc-desc mute">
+            {{ appleAcc ? `${appleAcc.email} · ${appleAcc.details}` : 'CalDAV + CardDAV com senha específica de app no cofre Windows.' }}
+          </div>
+          <div class="acc-acts">
+            <button v-if="!appleAcc" class="pillbtn tiny" @click="openCfg = 'apple'">Configurar iCloud</button>
+            <button v-else class="pillbtn tiny danger" @click="disconnectAccount(appleAcc.id)">Desconectar</button>
+          </div>
+        </div>
+
+        <!-- GitHub + GitLab -->
+        <div class="acc-card">
+          <div class="acc-head">
+            <span class="acc-name">🐙 GitHub & 🦊 GitLab</span>
+            <span class="chip" :class="ghAcc || gitlabCount ? 'ok' : 'muted'">{{ ghAcc ? ghAcc.label : `${gitlabCount} orgs GitLab` }}</span>
+          </div>
+          <div class="acc-desc mute">
+            {{ ghAcc ? ghAcc.details : 'PRs para revisar, notificações e MRs das organizações do Trabalho.' }}
+          </div>
+          <div class="acc-acts">
+            <button v-if="!ghAcc" class="pillbtn tiny" @click="openCfg = 'github'">Conectar GitHub</button>
+            <button v-else class="pillbtn tiny danger" @click="disconnectAccount(ghAcc.id)">Desconectar GitHub</button>
+            <button class="pillbtn tiny" @click="island.tab = 'work'">GitLab ({{ gitlabCount }}) ↗</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal interna limpa para Apple / GitHub (nunca sobrepõe os cards) -->
+      <div v-if="openCfg" class="cfg-overlay" @click="cancelGithubDeviceFlow(); openCfg = ''">
+        <div class="cfg-box" @click.stop>
+          <div class="box-head">
+            <span class="acc-name">{{ openCfg === 'apple' ? '🍎 Configurar Apple iCloud' : '🐙 Conectar GitHub' }}</span>
+            <button class="del-x" @click="cancelGithubDeviceFlow(); openCfg = ''">✕</button>
+          </div>
+
+          <template v-if="openCfg === 'apple'">
+            <input v-model="appleId" type="text" class="in tin" placeholder="seu@icloud.com">
+            <input v-model="applePass" type="password" class="in tin" placeholder="Senha específica de app">
+            <div class="form-btns">
+              <button class="pillbtn primary tiny" :disabled="!appleId.trim() || !applePass.trim() || assistant.syncing" @click="doAppleConnect">Conectar</button>
+              <button class="pillbtn tiny" @click="openCfg = ''">Cancelar</button>
+            </div>
+          </template>
+
           <template v-else>
-            <button class="pillbtn tiny" :disabled="assistant.syncing" @click="syncGoogle">↻ Sincronizar</button>
-            <button class="pillbtn tiny danger" @click="disconnectAccount(googleAcc.id)">Desconectar</button>
-          </template>
-        </div>
-      </div>
-
-      <!-- Windows Calendário Nativo -->
-      <div class="acc-card">
-        <div class="acc-head">
-          <span class="acc-name">🪟 Calendário do Windows</span>
-          <span class="chip" :class="winAcc ? 'ok' : 'muted'">{{ winAcc ? 'Ativo' : 'Pronto' }}</span>
-        </div>
-        <div class="acc-desc mute">
-          {{ winAcc ? winAcc.details : 'Lê compromissos locais do Windows (Outlook/Microsoft) via WinRT sem login.' }}
-        </div>
-        <div class="acc-acts">
-          <button class="pillbtn tiny" :disabled="assistant.syncing" @click="syncWindowsCalendar">↻ Ler Calendário Local</button>
-        </div>
-      </div>
-
-      <!-- Apple iCloud -->
-      <div class="acc-card">
-        <div class="acc-head">
-          <span class="acc-name">🍎 Apple iCloud</span>
-          <span class="chip" :class="appleAcc ? 'ok' : 'muted'">{{ appleAcc ? 'Conectada' : 'Opcional' }}</span>
-        </div>
-        <div v-if="openCfg !== 'apple'" class="acc-desc mute">
-          {{ appleAcc ? `${appleAcc.email} · ${appleAcc.details}` : 'CalDAV + CardDAV com senha específica de app no cofre Windows.' }}
-        </div>
-        <div v-if="openCfg === 'apple'" class="acc-form">
-          <input v-model="appleId" type="text" class="in tin" placeholder="seu@icloud.com">
-          <input v-model="applePass" type="password" class="in tin" placeholder="Senha específica de app">
-          <div class="form-btns">
-            <button class="pillbtn primary tiny" :disabled="!appleId.trim() || !applePass.trim() || assistant.syncing" @click="doAppleConnect">Conectar</button>
-            <button class="pillbtn tiny" @click="openCfg = ''">Cancelar</button>
-          </div>
-        </div>
-        <div v-else class="acc-acts">
-          <button v-if="!appleAcc" class="pillbtn tiny" @click="openCfg = 'apple'">Configurar iCloud</button>
-          <button v-else class="pillbtn tiny danger" @click="disconnectAccount(appleAcc.id)">Desconectar</button>
-        </div>
-      </div>
-
-      <!-- GitHub + GitLab -->
-      <div class="acc-card">
-        <div class="acc-head">
-          <span class="acc-name">🐙 GitHub & 🦊 GitLab</span>
-          <span class="chip" :class="ghAcc || gitlabCount ? 'ok' : 'muted'">{{ ghAcc ? ghAcc.label : `${gitlabCount} orgs GitLab` }}</span>
-        </div>
-        <div v-if="openCfg !== 'github'" class="acc-desc mute">
-          {{ ghAcc ? ghAcc.details : 'PRs para revisar, notificações e MRs das organizações do Trabalho.' }}
-        </div>
-        <div v-if="openCfg === 'github'" class="acc-form">
-          <div class="form-btns">
-            <button class="pillbtn tiny" :class="{ primary: ghMode === 'device' }" @click="ghMode = 'device'">OAuth</button>
-            <button class="pillbtn tiny" :class="{ primary: ghMode === 'pat' }" @click="ghMode = 'pat'">Token PAT</button>
-            <button class="pillbtn tiny" @click="cancelGithubDeviceFlow(); openCfg = ''">Cancelar</button>
-          </div>
-          <template v-if="ghMode === 'device'">
-            <div v-if="assistant.githubDevice" class="dev-code-box">
-              <span>Código: <b class="mono">{{ assistant.githubDevice.userCode }}</b></span>
-              <span class="mute">Aguardando…</span>
+            <div class="form-btns">
+              <button class="pillbtn tiny" :class="{ primary: ghMode === 'device' }" @click="ghMode = 'device'">OAuth</button>
+              <button class="pillbtn tiny" :class="{ primary: ghMode === 'pat' }" @click="ghMode = 'pat'">Token PAT</button>
             </div>
+            <template v-if="ghMode === 'device'">
+              <div v-if="assistant.githubDevice" class="dev-code-box">
+                <span>Código: <b class="mono">{{ assistant.githubDevice.userCode }}</b></span>
+                <span class="mute">Aguardando…</span>
+              </div>
+              <div v-else class="form-btns">
+                <input v-model="ghClientId" type="text" class="in tin grow" placeholder="GitHub OAuth Client ID">
+                <button class="pillbtn primary tiny" :disabled="!ghClientId.trim() || assistant.syncing" @click="doGithubDeviceStart">Autorizar</button>
+              </div>
+            </template>
             <div v-else class="form-btns">
-              <input v-model="ghClientId" type="text" class="in tin grow" placeholder="GitHub OAuth Client ID">
-              <button class="pillbtn primary tiny" :disabled="!ghClientId.trim() || assistant.syncing" @click="doGithubDeviceStart">Autorizar</button>
+              <input v-model="ghToken" type="password" class="in tin grow" placeholder="Token PAT (repo, notifications)">
+              <button class="pillbtn primary tiny" :disabled="!ghToken.trim() || assistant.syncing" @click="doGithubConnect">Salvar</button>
             </div>
           </template>
-          <div v-else class="form-btns">
-            <input v-model="ghToken" type="password" class="in tin grow" placeholder="Token PAT (repo, notifications)">
-            <button class="pillbtn primary tiny" :disabled="!ghToken.trim() || assistant.syncing" @click="doGithubConnect">Salvar</button>
-          </div>
-        </div>
-        <div v-else class="acc-acts">
-          <button v-if="!ghAcc" class="pillbtn tiny" @click="openCfg = 'github'">Conectar GitHub</button>
-          <button v-else class="pillbtn tiny danger" @click="disconnectAccount(ghAcc.id)">Desconectar GitHub</button>
-          <button class="pillbtn tiny" @click="island.tab = 'work'">GitLab ({{ gitlabCount }}) ↗</button>
         </div>
       </div>
     </div>
@@ -464,12 +461,13 @@ function daysBadge(n: number) {
 .del-x:hover { color: #ff6b5e; }
 .empty-sm { padding: 14px 4px; text-align: center; color: var(--mute); font-size: 11.5px; }
 
+.contas-wrap { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .contas-grid {
   flex: 1; min-height: 0; overflow-y: auto;
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 6px;
 }
 .acc-card {
-  display: flex; flex-direction: column; justify-content: space-between; gap: 3px; min-height: 0;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 3px; min-height: 0; overflow: hidden;
   padding: 6px 9px; border-radius: 11px;
   background: rgba(255,255,255,.04); border: 1px solid var(--line);
 }
@@ -479,7 +477,18 @@ function daysBadge(n: number) {
 .req-tag { font-size: 9px; padding: 1px 5px; border-radius: 5px; background: rgba(255,210,63,.16); color: #ffd23f; }
 .acc-desc { font-size: 10px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .acc-acts, .form-btns { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
-.acc-form { display: flex; flex-direction: column; gap: 3px; }
+.acc-form { display: flex; flex-direction: column; gap: 5px; }
+.cfg-overlay {
+  position: absolute; inset: 0; z-index: 15;
+  background: rgba(10,11,16,.72); backdrop-filter: blur(6px);
+  display: grid; place-items: center; padding: 8px; border-radius: 12px;
+}
+.cfg-box {
+  width: 100%; max-width: 340px;
+  background: #1d1f28; border: 1px solid rgba(255,255,255,.15); border-radius: 13px;
+  padding: 9px 11px; display: flex; flex-direction: column; gap: 6px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.55);
+}
 
 .mini-seg { width: 176px; }
 .mini-seg button { font-size: 10px; padding: 2.5px 0; }
