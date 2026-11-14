@@ -165,6 +165,8 @@ fn main() {
             assistant::assistant_google_disconnect,
             assistant::assistant_sync_windows,
             assistant::assistant_github_connect,
+            assistant::assistant_github_device_start,
+            assistant::assistant_github_device_poll,
             assistant::assistant_apple_connect,
             assistant::assistant_disconnect_account,
             assistant::assistant_add_important_date,

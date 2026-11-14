@@ -1,7 +1,7 @@
 // Estado reativo do Assistente Pessoal: contas, datas importantes, ponte do celular e alertas no avatar.
 import { computed, reactive, ref } from 'vue'
 import { api } from '../lib/api'
-import type { AssistantSnapshot, PairingInfo, ProactiveAlert } from '../lib/types'
+import type { AssistantSnapshot, GithubDeviceChallenge, PairingInfo, ProactiveAlert } from '../lib/types'
 import { alertIsland, island, showToast } from './state'
 
 export type AssistantSubTab = 'hoje' | 'contas' | 'celular'
@@ -26,7 +26,8 @@ export const assistant = reactive({
   error: '',
   onboardingDismissed: false,
   snap: structuredClone(EMPTY_SNAP) as AssistantSnapshot,
-  pairing: null as PairingInfo | null
+  pairing: null as PairingInfo | null,
+  githubDevice: null as GithubDeviceChallenge | null
 })
 
 export const topAlert = computed<ProactiveAlert | null>(() => assistant.snap.alerts[0] || null)
@@ -109,6 +110,50 @@ export async function connectGitHub(token: string) {
   try {
     assistant.snap = await api.assistantGithubConnect(token)
     showToast({ icon: '🐙', text: 'GitHub conectado', ms: 2500 })
+  } catch (e) {
+    assistant.error = String(e)
+  } finally {
+    assistant.syncing = false
+  }
+}
+
+let ghPollTimer: number | null = null
+
+export function cancelGithubDeviceFlow() {
+  if (ghPollTimer !== null) {
+    clearTimeout(ghPollTimer)
+    ghPollTimer = null
+  }
+  assistant.githubDevice = null
+}
+
+export async function startGithubDeviceFlow(clientId: string) {
+  cancelGithubDeviceFlow()
+  assistant.error = ''
+  assistant.syncing = true
+  try {
+    const ch = await api.assistantGithubDeviceStart(clientId)
+    assistant.githubDevice = ch
+    await api.copy(ch.userCode)
+    showToast({ icon: '🐙', text: `Código ${ch.userCode} copiado! Autorize no GitHub.`, ms: 4000 })
+    const waitMs = Math.max(5, ch.interval || 5) * 1000
+    const poll = async () => {
+      if (!assistant.githubDevice) return
+      try {
+        const snap = await api.assistantGithubDevicePoll(clientId, ch.deviceCode)
+        if (snap) {
+          assistant.snap = snap
+          cancelGithubDeviceFlow()
+          showToast({ icon: '🐙', text: 'GitHub conectado via OAuth!', ms: 2800 })
+          return
+        }
+        ghPollTimer = window.setTimeout(poll, waitMs)
+      } catch (e) {
+        assistant.error = String(e)
+        cancelGithubDeviceFlow()
+      }
+    }
+    ghPollTimer = window.setTimeout(poll, waitMs)
   } catch (e) {
     assistant.error = String(e)
   } finally {

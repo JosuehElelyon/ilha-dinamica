@@ -6,15 +6,16 @@ import { api } from '../../lib/api'
 import { pad } from '../../lib/format'
 import { S, save } from '../../store/settings'
 import {
-  addImportantDate, assistant, connectApple, connectGitHub, connectGoogle,
+  addImportantDate, assistant, cancelGithubDeviceFlow, connectApple, connectGitHub, connectGoogle,
   deleteImportantDate, disconnectAccount, enableUsbBridge, primaryPhone,
-  refreshAssistant, rotatePairingToken, syncGoogle, syncWindowsCalendar,
+  refreshAssistant, rotatePairingToken, startGithubDeviceFlow, syncGoogle, syncWindowsCalendar,
   triggerTestPhoneSignal
 } from '../../store/assistant'
-import { island } from '../../store/state'
+import { island, showToast } from '../../store/state'
 
 const qrDataUrl = ref('')
 const phoneMode = ref<'lan' | 'usb' | 'bluetooth'>('lan')
+const qrMode = ref<'web' | 'uri'>('web')
 
 // Formulário rápido para adicionar aniversário/data comemorativa
 const showAddDate = ref(false)
@@ -26,6 +27,8 @@ const dateMd = ref('')
 const openCfg = ref<'' | 'google' | 'github' | 'apple'>('')
 const gClientId = ref(S.googleClientId || '')
 const gSecret = ref('')
+const ghMode = ref<'device' | 'pat'>('device')
+const ghClientId = ref(S.githubClientId || '')
 const ghToken = ref('')
 const appleId = ref('')
 const applePass = ref('')
@@ -35,9 +38,14 @@ const winAcc = computed(() => assistant.snap.accounts.find(a => a.provider === '
 const ghAcc = computed(() => assistant.snap.accounts.find(a => a.provider === 'github'))
 const appleAcc = computed(() => assistant.snap.accounts.find(a => a.provider === 'apple'))
 const gitlabCount = computed(() => S.orgs.filter(o => o.gitlab.url).length)
+const activeQrTarget = computed(() =>
+  qrMode.value === 'web'
+    ? (assistant.pairing?.companionUrl || assistant.pairing?.qrUri || '')
+    : (assistant.pairing?.qrUri || '')
+)
 
 async function buildQr() {
-  const uri = assistant.pairing?.qrUri
+  const uri = activeQrTarget.value
   if (!uri) { qrDataUrl.value = ''; return }
   try {
     qrDataUrl.value = await QRCode.toDataURL(uri, {
@@ -50,8 +58,14 @@ async function buildQr() {
   }
 }
 
-watch(() => assistant.pairing?.qrUri, buildQr, { immediate: true })
+watch(activeQrTarget, buildQr, { immediate: true })
 onMounted(() => { refreshAssistant() })
+
+async function copyCompanionLink(url?: string) {
+  if (!url) return
+  await api.copy(url)
+  showToast({ icon: '📋', text: 'Link do Companion copiado!', ms: 2200 })
+}
 
 async function submitDate() {
   const [m, d] = dateMd.value.split('/').map(Number)
@@ -71,6 +85,11 @@ async function doGoogleConnect() {
 async function doGithubConnect() {
   await connectGitHub(ghToken.value.trim())
   if (!assistant.error) { ghToken.value = ''; openCfg.value = '' }
+}
+
+async function doGithubDeviceStart() {
+  save('githubClientId', ghClientId.value.trim())
+  await startGithubDeviceFlow(ghClientId.value.trim())
 }
 
 async function doAppleConnect() {
@@ -205,7 +224,7 @@ function daysBadge(n: number) {
           <span class="acc-name">🔵 Google <b class="req-tag">Principal</b></span>
           <span class="chip" :class="googleAcc ? 'ok' : 'warn'">{{ googleAcc ? 'Conectada' : 'Obrigatória' }}</span>
         </div>
-        <div class="acc-desc mute">
+        <div v-if="openCfg !== 'google'" class="acc-desc mute">
           {{ googleAcc ? `${googleAcc.email} · ${googleAcc.details}` : 'Agenda, contatos, aniversários e perfil via OAuth PKCE.' }}
         </div>
         <div v-if="openCfg === 'google'" class="acc-form">
@@ -245,7 +264,7 @@ function daysBadge(n: number) {
           <span class="acc-name">🍎 Apple iCloud</span>
           <span class="chip" :class="appleAcc ? 'ok' : 'muted'">{{ appleAcc ? 'Conectada' : 'Opcional' }}</span>
         </div>
-        <div class="acc-desc mute">
+        <div v-if="openCfg !== 'apple'" class="acc-desc mute">
           {{ appleAcc ? `${appleAcc.email} · ${appleAcc.details}` : 'CalDAV + CardDAV com senha específica de app no cofre Windows.' }}
         </div>
         <div v-if="openCfg === 'apple'" class="acc-form">
@@ -268,14 +287,28 @@ function daysBadge(n: number) {
           <span class="acc-name">🐙 GitHub & 🦊 GitLab</span>
           <span class="chip" :class="ghAcc || gitlabCount ? 'ok' : 'muted'">{{ ghAcc ? ghAcc.label : `${gitlabCount} orgs GitLab` }}</span>
         </div>
-        <div class="acc-desc mute">
+        <div v-if="openCfg !== 'github'" class="acc-desc mute">
           {{ ghAcc ? ghAcc.details : 'PRs para revisar, notificações e MRs das organizações do Trabalho.' }}
         </div>
         <div v-if="openCfg === 'github'" class="acc-form">
-          <input v-model="ghToken" type="password" class="in tin" placeholder="Token GitHub (repo, notifications)">
           <div class="form-btns">
-            <button class="pillbtn primary tiny" :disabled="!ghToken.trim() || assistant.syncing" @click="doGithubConnect">Salvar no Cofre</button>
-            <button class="pillbtn tiny" @click="openCfg = ''">Cancelar</button>
+            <button class="pillbtn tiny" :class="{ primary: ghMode === 'device' }" @click="ghMode = 'device'">OAuth</button>
+            <button class="pillbtn tiny" :class="{ primary: ghMode === 'pat' }" @click="ghMode = 'pat'">Token PAT</button>
+            <button class="pillbtn tiny" @click="cancelGithubDeviceFlow(); openCfg = ''">Cancelar</button>
+          </div>
+          <template v-if="ghMode === 'device'">
+            <div v-if="assistant.githubDevice" class="dev-code-box">
+              <span>Código: <b class="mono">{{ assistant.githubDevice.userCode }}</b></span>
+              <span class="mute">Aguardando…</span>
+            </div>
+            <div v-else class="form-btns">
+              <input v-model="ghClientId" type="text" class="in tin grow" placeholder="GitHub OAuth Client ID">
+              <button class="pillbtn primary tiny" :disabled="!ghClientId.trim() || assistant.syncing" @click="doGithubDeviceStart">Autorizar</button>
+            </div>
+          </template>
+          <div v-else class="form-btns">
+            <input v-model="ghToken" type="password" class="in tin grow" placeholder="Token PAT (repo, notifications)">
+            <button class="pillbtn primary tiny" :disabled="!ghToken.trim() || assistant.syncing" @click="doGithubConnect">Salvar</button>
           </div>
         </div>
         <div v-else class="acc-acts">
@@ -302,21 +335,33 @@ function daysBadge(n: number) {
         <div v-if="phoneMode === 'lan'" class="lan-box">
           <img v-if="qrDataUrl" :src="qrDataUrl" class="qr-img" alt="QR Code Pareamento">
           <div class="lan-info">
-            <div class="row-title">Mesma Rede Wi-Fi</div>
+            <div class="box-head" style="width:100%">
+              <div class="row-title">App Mobile Web</div>
+              <div class="seg qr-seg">
+                <button :class="{ on: qrMode === 'web' }" @click="qrMode = 'web'">Web</button>
+                <button :class="{ on: qrMode === 'uri' }" @click="qrMode = 'uri'">URI</button>
+              </div>
+            </div>
             <div class="mono tiny-mono">{{ assistant.pairing?.host || '127.0.0.1' }}:{{ assistant.pairing?.port || 47821 }}</div>
-            <div class="mute small">Escaneie o QR no app companheiro para parear via canal seguro.</div>
-            <button class="pillbtn tiny" @click="rotatePairingToken">↻ Novo Token</button>
+            <div class="mute small">Aponte a câmera do celular para abrir o painel móvel sem instalar app.</div>
+            <div class="form-btns">
+              <button class="pillbtn primary tiny" @click="copyCompanionLink(assistant.pairing?.companionUrl)">📋 Copiar Link</button>
+              <button class="pillbtn tiny" @click="rotatePairingToken">↻ Token</button>
+            </div>
           </div>
         </div>
 
         <div v-else-if="phoneMode === 'usb'" class="transport-box">
-          <div class="row-title">Cabo USB (Baixa Latência)</div>
+          <div class="row-title">Cabo USB (Baixa Latência · ADB)</div>
           <div class="mute small">
             ADB: <b>{{ assistant.pairing?.adbAvailable ? 'Disponível' : 'Não encontrado' }}</b> ·
             Aparelhos: <b>{{ assistant.pairing?.adbDevices.length ? assistant.pairing.adbDevices.join(', ') : 'Nenhum' }}</b>
           </div>
-          <div class="mute small">Usa <code>adb reverse</code> para trafegar os mesmos dados pela porta local sem firewall.</div>
-          <button class="pillbtn primary tiny" @click="enableUsbBridge">🔌 Ativar Ponte USB</button>
+          <div class="mute small">Ativa <code>adb reverse</code> para acessar <code>127.0.0.1:{{ assistant.pairing?.port || 47821 }}</code> via cabo sem Wi-Fi.</div>
+          <div class="form-btns">
+            <button class="pillbtn primary tiny" @click="enableUsbBridge">🔌 Ativar Ponte USB</button>
+            <button class="pillbtn tiny" @click="copyCompanionLink(`http://127.0.0.1:${assistant.pairing?.port || 47821}/?token=${assistant.pairing?.token || ''}`)">📋 Link USB</button>
+          </div>
         </div>
 
         <div v-else class="transport-box">
@@ -324,8 +369,10 @@ function daysBadge(n: number) {
           <div class="mute small">
             Pareados: <b>{{ assistant.pairing?.btPairedPhones.length ? assistant.pairing.btPairedPhones.join(', ') : 'Nenhum celular pareado' }}</b>
           </div>
+          <div class="mute small">Use o Bluetooth do Windows ou pareie via Atalhos/Companion usando o link da rede.</div>
           <div class="form-btns">
-            <button class="pillbtn tiny" @click="island.tab = 'net'">Gerenciar Bluetooth ↗</button>
+            <button class="pillbtn primary tiny" @click="island.tab = 'net'">Gerenciar Bluetooth ↗</button>
+            <button class="pillbtn tiny" @click="api.runAction('ms-settings:bluetooth')">Config. Windows ↗</button>
           </div>
         </div>
       </section>
@@ -436,6 +483,13 @@ function daysBadge(n: number) {
 
 .mini-seg { width: 176px; }
 .mini-seg button { font-size: 10px; padding: 2.5px 0; }
+.qr-seg { width: 82px; flex: none; }
+.qr-seg button { font-size: 9.5px; padding: 2px 0; }
+.grow { flex: 1; min-width: 0; }
+.dev-code-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 4px 8px; border-radius: 7px; background: rgba(91,124,255,.15); font-size: 11px;
+}
 .lan-box { flex: 1; display: flex; align-items: center; gap: 10px; min-height: 0; }
 .qr-img { width: 88px; height: 88px; border-radius: 8px; background: #fff; padding: 3px; flex: none; }
 .lan-info, .transport-box { flex: 1; display: flex; flex-direction: column; gap: 5px; align-items: flex-start; justify-content: center; min-width: 0; }

@@ -107,6 +107,10 @@ export const api = {
   assistantGoogleDisconnect: () => invoke<AssistantSnapshot>('assistant_google_disconnect'),
   assistantSyncWindows: () => invoke<AssistantSnapshot>('assistant_sync_windows'),
   assistantGithubConnect: (token: string) => invoke<AssistantSnapshot>('assistant_github_connect', { token }),
+  assistantGithubDeviceStart: (clientId: string) =>
+    invoke<import('./types').GithubDeviceChallenge>('assistant_github_device_start', { clientId }),
+  assistantGithubDevicePoll: (clientId: string, deviceCode: string) =>
+    invoke<AssistantSnapshot | null>('assistant_github_device_poll', { clientId, deviceCode }),
   assistantAppleConnect: (appleId: string, appPassword: string) =>
     invoke<AssistantSnapshot>('assistant_apple_connect', { appleId, appPassword }),
   assistantDisconnectAccount: (accountId: string) => invoke<AssistantSnapshot>('assistant_disconnect_account', { accountId }),

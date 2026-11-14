@@ -199,6 +199,8 @@ pub struct DevWorkItem {
 #[serde(rename_all = "camelCase")]
 pub struct PairingInfo {
     pub qr_uri: String,
+    pub companion_url: String,
+    pub webhook_url: String,
     pub host: String,
     pub port: u16,
     pub token: String,

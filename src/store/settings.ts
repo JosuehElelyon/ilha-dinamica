@@ -77,6 +77,7 @@ export interface Settings {
   focusMinutes: number
   pet: PetId
   googleClientId: string
+  githubClientId: string
 }
 
 const DEFAULTS: Settings = {
@@ -102,7 +103,8 @@ const DEFAULTS: Settings = {
   homeCards: [...DEFAULT_HOME_CARDS],
   focusMinutes: 25,
   pet: 'cat',
-  googleClientId: ''
+  googleClientId: '',
+  githubClientId: ''
 }
 
 export const S = reactive<Settings>(structuredClone(DEFAULTS))

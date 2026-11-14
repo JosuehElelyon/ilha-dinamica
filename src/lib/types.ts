@@ -170,12 +170,22 @@ export interface DevWorkItem {
 
 export interface PairingInfo {
   qrUri: string
+  companionUrl: string
+  webhookUrl: string
   host: string
   port: number
   token: string
   adbAvailable: boolean
   adbDevices: string[]
   btPairedPhones: string[]
+}
+
+export interface GithubDeviceChallenge {
+  deviceCode: string
+  userCode: string
+  verificationUri: string
+  expiresIn: number
+  interval: number
 }
 
 export interface AssistantSnapshot {

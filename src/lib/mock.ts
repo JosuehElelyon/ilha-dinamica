@@ -229,8 +229,21 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
     mockDates = mockDates.filter(d => d.id !== String(a.id))
     return mockAssistantSnapshot()
   },
+  assistant_github_device_start: () => ({
+    deviceCode: 'dev_mock_123',
+    userCode: 'ILHA-2026',
+    verificationUri: 'https://github.com/login/device',
+    expiresIn: 900,
+    interval: 5
+  }),
+  assistant_github_device_poll: () => {
+    mockGithubConnected = true
+    return mockAssistantSnapshot()
+  },
   phone_pairing_info: () => ({
     qrUri: `ilha://pair?v=1&host=192.168.0.15&port=47821&token=${mockPairToken}&pc=DESKTOP-JOSUEH`,
+    companionUrl: `http://192.168.0.15:47821/?token=${mockPairToken}`,
+    webhookUrl: `http://192.168.0.15:47821/api/packet?token=${mockPairToken}`,
     host: '192.168.0.15',
     port: 47821,
     token: mockPairToken,

@@ -42,6 +42,14 @@ pub fn build_qr_pairing_uri(host: &str, port: u16, token: &str, pc_name: &str) -
     format!("ilha://pair?v=1&host={host}&port={port}&token={token}&pc={encoded_name}")
 }
 
+pub fn build_companion_url(host: &str, port: u16, token: &str) -> String {
+    format!("http://{host}:{port}/?token={token}")
+}
+
+pub fn build_webhook_url(host: &str, port: u16, token: &str) -> String {
+    format!("http://{host}:{port}/api/packet?token={token}")
+}
+
 pub fn generate_pairing_token(seed: &str) -> String {
     let mut h = Sha256::new();
     h.update(seed.as_bytes());
@@ -124,5 +132,13 @@ mod tests {
 
         let qr = build_qr_pairing_uri("192.168.0.15", 47821, "abc123", "Meu PC");
         assert!(qr.starts_with("ilha://pair?v=1&host=192.168.0.15&port=47821"));
+        assert_eq!(
+            build_companion_url("192.168.0.15", 47821, "abc123"),
+            "http://192.168.0.15:47821/?token=abc123"
+        );
+        assert_eq!(
+            build_webhook_url("192.168.0.15", 47821, "abc123"),
+            "http://192.168.0.15:47821/api/packet?token=abc123"
+        );
     }
 }

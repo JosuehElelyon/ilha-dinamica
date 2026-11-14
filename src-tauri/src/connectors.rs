@@ -24,14 +24,111 @@ struct AppleCreds {
     app_password: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GithubDeviceChallenge {
+    pub device_code: String,
+    pub user_code: String,
+    pub verification_uri: String,
+    pub expires_in: u64,
+    pub interval: u64,
+}
+
 /* ==================== GITHUB ==================== */
 
 pub fn save_github_token(token: &str) -> Result<(), String> {
+    if token.trim().is_empty() {
+        vault::delete_secret(GITHUB_VAULT_KEY);
+        return Ok(());
+    }
     vault::set_secret(GITHUB_VAULT_KEY, token.trim())
 }
 
 pub fn has_github_token() -> bool {
     vault::get_secret(GITHUB_VAULT_KEY).is_some()
+}
+
+pub async fn start_github_device_flow(client_id: &str) -> Result<GithubDeviceChallenge, String> {
+    let cid = client_id.trim();
+    if cid.is_empty() {
+        return Err("Informe o Client ID do GitHub OAuth App (Device Flow)".into());
+    }
+    let http = reqwest::Client::builder()
+        .timeout(Duration::from_secs(12))
+        .user_agent("ilha-dinamica")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let val: Value = http
+        .post("https://github.com/login/device/code")
+        .header("Accept", "application/json")
+        .form(&[("client_id", cid), ("scope", "read:user repo notifications")])
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .json()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let device_code = val["device_code"]
+        .as_str()
+        .ok_or_else(|| {
+            val["error_description"]
+                .as_str()
+                .unwrap_or("Falha ao iniciar GitHub Device Flow")
+                .to_string()
+        })?
+        .to_string();
+
+    Ok(GithubDeviceChallenge {
+        device_code,
+        user_code: val["user_code"].as_str().unwrap_or("").to_string(),
+        verification_uri: val["verification_uri"]
+            .as_str()
+            .unwrap_or("https://github.com/login/device")
+            .to_string(),
+        expires_in: val["expires_in"].as_u64().unwrap_or(900),
+        interval: val["interval"].as_u64().unwrap_or(5),
+    })
+}
+
+pub async fn poll_github_device_flow(
+    client_id: &str,
+    device_code: &str,
+) -> Result<Option<String>, String> {
+    let http = reqwest::Client::builder()
+        .timeout(Duration::from_secs(12))
+        .user_agent("ilha-dinamica")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let val: Value = http
+        .post("https://github.com/login/oauth/access_token")
+        .header("Accept", "application/json")
+        .form(&[
+            ("client_id", client_id.trim()),
+            ("device_code", device_code.trim()),
+            ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
+        ])
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .json()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if let Some(tok) = val["access_token"].as_str() {
+        save_github_token(tok)?;
+        return Ok(Some(tok.to_string()));
+    }
+    match val["error"].as_str() {
+        Some("authorization_pending") | Some("slow_down") => Ok(None),
+        Some(err) => Err(val["error_description"]
+            .as_str()
+            .unwrap_or(err)
+            .to_string()),
+        None => Ok(None),
+    }
 }
 
 pub async fn sync_github() -> Result<(AccountRecord, Vec<DevWorkItem>), String> {

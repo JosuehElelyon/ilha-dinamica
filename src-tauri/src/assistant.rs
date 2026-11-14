@@ -61,18 +61,69 @@ pub fn init(app: &AppHandle) {
     *state.bridge.token.lock().unwrap() = tok.clone();
     phone_bridge::start_listener(app.clone(), tok, &state.bridge.port);
 
-    // Sincronização inicial leve + ticker proativo em background
+    // Sincronização inicial + ticker proativo em background (Windows + contas conectadas)
     let app_bg = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(3));
         let _ = sync_windows_into_db(&app_bg);
         emit_snapshot_and_notify(&app_bg);
 
+        let app_async = app_bg.clone();
+        tauri::async_runtime::spawn(async move {
+            sync_all_connected_accounts(&app_async).await;
+        });
+
+        let mut tick: u32 = 0;
         loop {
             std::thread::sleep(Duration::from_secs(60));
+            tick = tick.wrapping_add(1);
+            if tick % 15 == 0 {
+                let _ = sync_windows_into_db(&app_bg);
+                let app_async = app_bg.clone();
+                tauri::async_runtime::spawn(async move {
+                    sync_all_connected_accounts(&app_async).await;
+                });
+            }
             emit_snapshot_and_notify(&app_bg);
         }
     });
+}
+
+async fn sync_all_connected_accounts(app: &AppHandle) {
+    if google::load_tokens().is_some() {
+        let _ = assistant_google_sync(app.clone()).await;
+    }
+    if connectors::has_github_token() {
+        if let Ok((acc, items)) = connectors::sync_github().await {
+            {
+                let state = app.state::<AssistantState>();
+                let guard = state.db.lock().unwrap();
+                if let Some(db) = guard.as_ref() {
+                    let _ = db.upsert_account(&acc);
+                }
+                *state.dev_items.lock().unwrap() = items;
+            }
+            emit_snapshot_and_notify(app);
+        }
+    }
+    if connectors::load_apple_creds().is_some() {
+        if let Ok((acc, contacts)) = connectors::sync_apple_icloud().await {
+            {
+                let state = app.state::<AssistantState>();
+                let guard = state.db.lock().unwrap();
+                if let Some(db) = guard.as_ref() {
+                    let _ = db.upsert_account(&acc);
+                    for (person, dates) in &contacts {
+                        let _ = db.upsert_person(person);
+                        for d in dates {
+                            let _ = db.upsert_important_date(d);
+                        }
+                    }
+                }
+            }
+            emit_snapshot_and_notify(app);
+        }
+    }
 }
 
 fn sync_windows_into_db(app: &AppHandle) -> Result<usize, String> {
@@ -264,6 +315,36 @@ pub async fn assistant_github_connect(
 }
 
 #[tauri::command]
+pub async fn assistant_github_device_start(
+    client_id: String,
+) -> Result<connectors::GithubDeviceChallenge, String> {
+    let ch = connectors::start_github_device_flow(&client_id).await?;
+    let _ = crate::actions::run_action(ch.verification_uri.clone());
+    Ok(ch)
+}
+
+#[tauri::command]
+pub async fn assistant_github_device_poll(
+    app: AppHandle,
+    client_id: String,
+    device_code: String,
+) -> Result<Option<AssistantSnapshot>, String> {
+    let Some(_tok) = connectors::poll_github_device_flow(&client_id, &device_code).await? else {
+        return Ok(None);
+    };
+    let (acc, items) = connectors::sync_github().await?;
+    {
+        let state = app.state::<AssistantState>();
+        if let Some(db) = state.db.lock().unwrap().as_ref() {
+            let _ = db.upsert_account(&acc);
+        }
+        *state.dev_items.lock().unwrap() = items;
+    }
+    emit_snapshot_and_notify(&app);
+    Ok(Some(build_snapshot(&app)))
+}
+
+#[tauri::command]
 pub async fn assistant_apple_connect(
     app: AppHandle,
     apple_id: String,
@@ -273,7 +354,8 @@ pub async fn assistant_apple_connect(
     let (acc, contacts) = connectors::sync_apple_icloud().await?;
     {
         let state = app.state::<AssistantState>();
-        if let Some(db) = state.db.lock().unwrap().as_ref() {
+        let guard = state.db.lock().unwrap();
+        if let Some(db) = guard.as_ref() {
             let _ = db.upsert_account(&acc);
             for (person, dates) in &contacts {
                 let _ = db.upsert_person(person);
