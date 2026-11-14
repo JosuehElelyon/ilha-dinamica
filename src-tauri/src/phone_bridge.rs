@@ -17,7 +17,7 @@ use crate::vault;
 const BRIDGE_TOKEN_KEY: &str = "phone:bridge_token";
 const DEFAULT_PORT: u16 = 47821;
 const COMPANION_HTML: &str = include_str!("companion.html");
-const COMPANION_MANIFEST: &str = r#"{"name":"Ilha Dinâmica Companion","short_name":"Ilha Companion","start_url":"/","display":"standalone","background_color":"#0f1016","theme_color":"#0f1016"}"#;
+const COMPANION_MANIFEST: &str = r##"{"name":"Ilha Dinâmica Companion","short_name":"Ilha Companion","start_url":"/","display":"standalone","background_color":"#0f1016","theme_color":"#0f1016"}"##;
 
 pub struct BridgeRuntime {
     pub port: Mutex<u16>,
