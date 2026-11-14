@@ -63,17 +63,17 @@ function icon(name: string, isIn: boolean) {
 </template>
 
 <style scoped>
-.audio { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; height: 100%; padding: 0 8px; }
-.col { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
-.ctrl { display: grid; grid-template-columns: 34px 1fr 54px; gap: 8px; align-items: center; }
+.audio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; height: 100%; }
+.col { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+.ctrl { display: grid; grid-template-columns: 34px minmax(0, 1fr) 54px; gap: 8px; align-items: center; }
 .val { font-size: 12px; text-align: right; }
-.list { display: flex; flex-direction: column; gap: 3px; overflow-y: auto; min-height: 0; }
+.list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; overflow-x: hidden; min-height: 0; min-width: 0; }
 .dev { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.04);
-  font-size: 12.5px; text-align: left; width: 100%; }
+  font-size: 12.5px; text-align: left; width: 100%; min-width: 0; }
 .dev:hover { background: rgba(255,255,255,.08); }
 .radio { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #6b6b74; flex: none; }
 .dev.def { background: color-mix(in srgb, var(--accent), transparent 82%); }
 .dev.def .radio { box-shadow: inset 0 0 0 4px var(--accent); }
-.nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty { padding: 14px 4px; }
 </style>

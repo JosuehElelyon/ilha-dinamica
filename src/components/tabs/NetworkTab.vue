@@ -131,9 +131,9 @@ onMounted(loadAll)
 </template>
 
 <style scoped>
-.net-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px; height: 100%; }
+.net-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 12px; height: 100%; }
 .panel-col {
-  display: flex; flex-direction: column; min-height: 0; padding: 10px 12px;
+  display: flex; flex-direction: column; min-height: 0; min-width: 0; padding: 10px 12px;
   border-radius: 18px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
 }
 .col-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; }

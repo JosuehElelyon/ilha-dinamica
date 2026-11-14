@@ -18,26 +18,50 @@ function move(i: number, d: number) {
 </script>
 
 <template>
-  <div>
+  <div class="mods-wrap">
     <div class="top"><span class="set-label">MÓDULOS — ative, desative e reordene as abas</span></div>
     <div class="grid">
       <div v-for="(id, i) in S.modules" :key="id" class="mod" :class="{ off: S.modulesOff.includes(id) }">
-        <ModIcon :name="id" /><span class="nm">{{ MODULES[id] }}</span>
-        <button class="mv" title="Mover para a esquerda" @click="move(i, -1)">‹</button>
-        <button class="mv" title="Mover para a direita" @click="move(i, 1)">›</button>
-        <button class="switch" :class="{ on: !S.modulesOff.includes(id) }"
-                :title="S.modulesOff.includes(id) ? 'Adicionar' : 'Remover'" @click="toggle(id)" />
+        <ModIcon :name="id" />
+        <span class="nm">{{ MODULES[id] }}</span>
+        <div class="acts">
+          <button class="mv" :disabled="i === 0" title="Mover para a esquerda" @click="move(i, -1)">‹</button>
+          <button class="mv" :disabled="i === S.modules.length - 1" title="Mover para a direita" @click="move(i, 1)">›</button>
+          <button class="switch" :class="{ on: !S.modulesOff.includes(id) }"
+                  :title="S.modulesOff.includes(id) ? 'Adicionar' : 'Remover'" @click="toggle(id)" />
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.top { padding: 2px 8px 8px; }
-.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 8px; }
-.mod { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 12px; background: rgba(255,255,255,.04); font-size: 12.5px; }
-.nm { flex: 1; }
+.mods-wrap {
+  display: flex; flex-direction: column; justify-content: center; gap: 9px;
+  overflow: hidden;
+}
+.top { text-align: center; }
+.grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px; width: 100%;
+}
+.mod {
+  display: flex; align-items: center; gap: 5px; min-width: 0;
+  padding: 6px 7px; border-radius: 11px;
+  background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.06);
+  font-size: 10.2px;
+}
+.mod :deep(.ico) { width: 13px; height: 13px; opacity: .9; }
+.nm {
+  flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-weight: 500;
+}
 .off { opacity: .45; }
-.mv { color: var(--mute); padding: 0 3px; border-radius: 6px; font-size: 13px; }
-.mv:hover { color: #fff; background: rgba(255,255,255,.08); }
+.acts { display: flex; align-items: center; gap: 1px; flex: none; }
+.mv { color: var(--mute); width: 12px; height: 18px; border-radius: 5px; font-size: 12px; display: grid; place-items: center; }
+.mv:hover:not(:disabled) { color: #fff; background: rgba(255,255,255,.1); }
+.mv:disabled { opacity: .22; cursor: default; }
+.switch { width: 24px; height: 14px; border-radius: 7px; margin-left: 2px; }
+.switch::after { width: 10px; height: 10px; }
+.switch.on::after { transform: translateX(10px); }
 </style>
