@@ -1,0 +1,14 @@
+[package]
+name = "assistant-core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Nucleo hexagonal local-first do assistente pessoal da Ilha Dinamica"
+
+[dependencies]
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"

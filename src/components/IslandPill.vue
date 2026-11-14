@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { api } from '../lib/api'
 import { fmt } from '../lib/format'
 import { island, live, now, focus, focusLeft, timer, timerLeft, stopwatch, swElapsed, nextMeeting } from '../store/state'
+import { topAlert } from '../store/assistant'
 import { S } from '../store/settings'
 import { st } from '../store/work'
 
@@ -16,6 +17,10 @@ const view = computed(() => {
   const t = island.toast
   if (t) return { text: t.text, icon: t.img ? '' : t.icon || '', img: t.img || '', progress: t.progress ?? null, bars: false, dot: '', joinUrl: '' }
   const base = { icon: '', img: '', progress: null as number | null, bars: false, dot: '', joinUrl: '' }
+  const pa = topAlert.value
+  if (pa && pa.level === 'urgent') {
+    return { ...base, icon: pa.icon, text: pa.bubbleText.replace(pa.icon, '').trim() || pa.title, dot: 'focus' }
+  }
   const m = meet.value
   if (m) {
     const mins = Math.ceil((m.startMs - now.value) / 60_000)
@@ -26,6 +31,9 @@ const view = computed(() => {
   if (focus.running) return { ...base, text: `${focus.mode === 'focus' ? 'Foco' : 'Pausa'} ${fmt(focusLeft())}`, dot: 'focus' }
   if (timer.running) return { ...base, text: `Timer ${fmt(timerLeft())}`, dot: 'timer' }
   if (stopwatch.running) return { ...base, text: `⏱ ${fmt(swElapsed())}`, dot: 'on' }
+  if (pa && pa.avatarMood === 'celebrate') {
+    return { ...base, icon: pa.icon, text: `${hora} · ${pa.bubbleText.replace(pa.icon, '').trim()}` }
+  }
   return { ...base, text: hora }
 })
 </script>

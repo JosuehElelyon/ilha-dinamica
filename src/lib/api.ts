@@ -3,7 +3,9 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 import { listen as tauriListen } from '@tauri-apps/api/event'
 import type {
-  Adapter, Anchor, BtState, Friend, Game, SteamInfo, AppData, Clip, MrList, Org, RepoGitStatus, VpnResult, Devices, MediaInfo, Proc, ScanResult, SysInfo, VolInfo, WifiNet, WifiStatus
+  Adapter, Anchor, AssistantSnapshot, BtState, Friend, Game, PairingInfo, PhoneSignalRecord, ProactiveAlert,
+  SteamInfo, AppData, Clip, MrList, Org, RepoGitStatus, VpnResult, Devices, MediaInfo, Proc, ScanResult,
+  SysInfo, VolInfo, WifiNet, WifiStatus
 } from './types'
 import { mock } from './mock'
 
@@ -97,6 +99,26 @@ export const api = {
   btState: () => invoke<BtState>('bt_state'),
   btToggleRadio: (enable: boolean) => invoke<boolean>('bt_toggle_radio', { enable }),
 
+  // assistente pessoal & ponte com celular
+  assistantSnapshot: () => invoke<AssistantSnapshot>('assistant_snapshot'),
+  assistantGoogleConnect: (clientId: string, clientSecret?: string) =>
+    invoke<AssistantSnapshot>('assistant_google_connect', { clientId, clientSecret: clientSecret || null }),
+  assistantGoogleSync: () => invoke<AssistantSnapshot>('assistant_google_sync'),
+  assistantGoogleDisconnect: () => invoke<AssistantSnapshot>('assistant_google_disconnect'),
+  assistantSyncWindows: () => invoke<AssistantSnapshot>('assistant_sync_windows'),
+  assistantGithubConnect: (token: string) => invoke<AssistantSnapshot>('assistant_github_connect', { token }),
+  assistantAppleConnect: (appleId: string, appPassword: string) =>
+    invoke<AssistantSnapshot>('assistant_apple_connect', { appleId, appPassword }),
+  assistantDisconnectAccount: (accountId: string) => invoke<AssistantSnapshot>('assistant_disconnect_account', { accountId }),
+  assistantAddImportantDate: (name: string, kind: string, month: number, day: number, yearOptional?: number | null) =>
+    invoke<AssistantSnapshot>('assistant_add_important_date', { name, kind, month, day, yearOptional: yearOptional ?? null }),
+  assistantDeleteImportantDate: (id: string) => invoke<AssistantSnapshot>('assistant_delete_important_date', { id }),
+  phonePairingInfo: () => invoke<PairingInfo>('phone_pairing_info'),
+  phoneRotateToken: () => invoke<PairingInfo>('phone_rotate_token'),
+  phoneEnableUsbBridge: () => invoke<string[]>('phone_enable_usb_bridge'),
+  phoneIngestDemoSignal: (kind: string, title: string, body: string, transport: string) =>
+    invoke<AssistantSnapshot>('phone_ingest_demo_signal', { kind, title, body, transport }),
+
   // eventos vindos do Rust
   onHover: (cb: (inside: boolean) => void) => on('hover', cb),
   onToggle: (cb: () => void) => on('toggle', cb),
@@ -108,5 +130,8 @@ export const api = {
   onSys: (cb: (s: SysInfo) => void) => on('sys', cb),
   onAnchor: (cb: (a: Anchor) => void) => on('anchor', cb),
   onAdapters: (cb: (a: Adapter[]) => void) => on('adapters', cb),
-  onAutostart: (cb: (on: boolean) => void) => on('autostart', cb)
+  onAutostart: (cb: (on: boolean) => void) => on('autostart', cb),
+  onAssistantUpdate: (cb: (s: AssistantSnapshot) => void) => on('assistant-update', cb),
+  onAssistantAlert: (cb: (a: ProactiveAlert) => void) => on('assistant-alert', cb),
+  onPhoneSignal: (cb: (s: PhoneSignalRecord) => void) => on('phone-signal', cb)
 }

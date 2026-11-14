@@ -57,6 +57,14 @@ pub fn start(app: AppHandle) {
     });
 }
 
+pub fn set_text_from_app(app: &AppHandle, text: String) {
+    let state = app.state::<ClipState>();
+    *state.last.lock().unwrap() = text.clone();
+    if let Ok(mut cb) = arboard::Clipboard::new() {
+        let _ = cb.set_text(text);
+    }
+}
+
 #[tauri::command]
 pub fn copy_text(state: State<ClipState>, text: String) {
     *state.last.lock().unwrap() = text.clone();

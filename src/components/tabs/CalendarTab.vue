@@ -2,9 +2,10 @@
 // Calendário + lembretes por dia
 import { computed, ref } from 'vue'
 import { api } from '../../lib/api'
-import { DIAS_CURTOS, MESES_LONGOS, ymd } from '../../lib/format'
+import { DIAS_CURTOS, MESES_LONGOS, pad, ymd } from '../../lib/format'
 import { S, save } from '../../store/settings'
 import { meetings, meetingsState, now, refreshMeetings, reminders, remDate, saveReminders } from '../../store/state'
+import { assistant } from '../../store/assistant'
 
 const ref0 = new Date(); ref0.setDate(1)
 const month = ref(new Date(ref0))
@@ -21,14 +22,17 @@ const days = computed(() => {
   const today = ymd(new Date())
   const withRem = new Set([
     ...reminders.value.filter(r => !r.fired).map(r => r.date),
-    ...meetings.value.map(mt => mt.date)
+    ...meetings.value.map(mt => mt.date),
+    ...assistant.snap.allEvents.map(ev => ev.date)
   ])
+  const specialMd = new Set(assistant.snap.upcomingDates.map(d => `${pad(d.month)}-${pad(d.day)}`))
   return Array.from({ length: 42 }, (_, i) => {
     const d = new Date(start); d.setDate(start.getDate() + i)
     const ds = ymd(d)
+    const md = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
     return {
       ds, n: d.getDate(), out: d.getMonth() !== m, we: d.getDay() === 0 || d.getDay() === 6,
-      today: ds === today, sel: ds === sel.value, has: withRem.has(ds)
+      today: ds === today, sel: ds === sel.value, has: withRem.has(ds) || specialMd.has(md)
     }
   })
 })
@@ -38,6 +42,11 @@ const dayTitle = computed(() => {
   return `Agenda · ${DIAS_CURTOS[d.getDay()]} ${d.getDate()} ${MESES_LONGOS[d.getMonth()].slice(0, 3)}`
 })
 const dayMeetings = computed(() => meetings.value.filter(m => m.date === sel.value))
+const dayAssistantEvents = computed(() => assistant.snap.allEvents.filter(e => e.date === sel.value))
+const daySpecialDates = computed(() => {
+  const [, mm, dd] = sel.value.split('-').map(Number)
+  return assistant.snap.upcomingDates.filter(d => d.month === mm && d.day === dd)
+})
 const items = computed(() => reminders.value.filter(r => r.date === sel.value).sort((a, b) => a.time.localeCompare(b.time)))
 
 function shift(n: number) { const d = new Date(month.value); d.setMonth(d.getMonth() + n); month.value = d }
@@ -87,13 +96,24 @@ async function saveIcs() {
         <span v-if="meetingsState.error" class="err tiny">{{ meetingsState.error }}</span>
       </form>
       <div v-else class="list">
+        <div v-for="sd in daySpecialDates" :key="sd.id" class="rem bday">
+          <span class="t">{{ sd.kind === 'birthday' ? '🎂' : '🎉' }}</span>
+          <span class="mtxt">{{ sd.title }}</span>
+          <span class="mute tiny">{{ sd.sourceProvider }}</span>
+        </div>
+        <div v-for="ev in dayAssistantEvents" :key="ev.id" class="rem meet">
+          <span class="t">{{ ev.allDay ? 'Dia' : ev.startTime }}</span>
+          <span class="mtxt" :title="`${ev.title} (${ev.sourceProvider})`">{{ ev.sourceProvider === 'google' ? '🔵' : '🪟' }} {{ ev.title }}</span>
+          <button v-if="ev.joinUrl" class="pillbtn join" title="Entrar na reunião" @click="api.runAction(ev.joinUrl)">Entrar ↗</button>
+          <span v-else class="mute tiny">{{ ev.endTime }}</span>
+        </div>
         <div v-for="m in dayMeetings" :key="m.id" class="rem meet" :class="{ done: !m.allDay && m.endMs < now }">
           <span class="t">{{ m.allDay ? 'Dia' : m.startTime }}</span>
           <span class="mtxt" :title="`${m.startTime}–${m.endTime} · ${m.summary}`">📹 {{ m.summary }}</span>
           <button v-if="m.joinUrl" class="pillbtn join" title="Entrar na reunião" @click="api.runAction(m.joinUrl)">Entrar ↗</button>
           <span v-else class="mute tiny">{{ m.allDay ? '' : m.endTime }}</span>
         </div>
-        <div v-if="!dayMeetings.length && !items.length" class="empty" style="padding: 14px 4px">Nenhum evento neste dia</div>
+        <div v-if="!dayMeetings.length && !dayAssistantEvents.length && !daySpecialDates.length && !items.length" class="empty" style="padding: 14px 4px">Nenhum evento neste dia</div>
         <div v-for="r in items" :key="r.id" class="rem" :class="{ done: r.fired }">
           <span class="t">{{ r.time }}</span><span>{{ r.text }}</span>
           <button class="x" title="Excluir" @click="remove(r.id)">✕</button>
@@ -136,6 +156,7 @@ async function saveIcs() {
 .list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; min-height: 0; }
 .rem { display: grid; grid-template-columns: 46px 1fr auto; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 10px; background: rgba(255,255,255,.04); font-size: 12.5px; }
 .rem.meet { border-left: 2px solid #5b7cff; }
+.rem.bday { border-left: 2px solid #ffd23f; }
 .mtxt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .join { padding: 2px 8px; font-size: 11px; background: rgba(91, 124, 255, .25); color: #cfd8ff; }
 .join:hover { background: rgba(91, 124, 255, .45); color: #fff; }

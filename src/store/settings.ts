@@ -14,7 +14,7 @@ export const PETS: { id: PetId; name: string; desc: string; tag: string }[] = [
 ]
 
 export type ModuleId =
-  | 'home' | 'work' | 'games' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
+  | 'home' | 'assistant' | 'work' | 'games' | 'actions' | 'tools' | 'snippets' | 'clips' | 'notes' | 'timer' | 'cal'
   | 'weather' | 'audio' | 'net' | 'sys' | 'clean' | 'procs'
 
 export type HomeCardId = 'stopwatch' | 'media' | 'focus' | 'timer' | 'weather' | 'meeting'
@@ -31,7 +31,7 @@ export const HOME_CARDS: Record<HomeCardId, { label: string; icon: string }> = {
 export const DEFAULT_HOME_CARDS: HomeCardId[] = ['stopwatch', 'media', 'focus']
 
 export const MODULES: Record<ModuleId, string> = {
-  home: 'INÍCIO', work: 'TRABALHO', games: 'JOGOS', actions: 'AÇÕES', tools: 'FERRAMENTAS', snippets: 'SNIPPETS', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',
+  home: 'INÍCIO', assistant: 'ASSISTENTE', work: 'TRABALHO', games: 'JOGOS', actions: 'AÇÕES', tools: 'FERRAMENTAS', snippets: 'SNIPPETS', clips: 'CLIPS', notes: 'NOTAS', timer: 'TIMER',
   cal: 'AGENDA', weather: 'CLIMA', audio: 'ÁUDIO', net: 'REDES', sys: 'SISTEMA', clean: 'LIMPEZA', procs: 'PROCESSOS'
 }
 
@@ -76,6 +76,7 @@ export interface Settings {
   homeCards: HomeCardId[]
   focusMinutes: number
   pet: PetId
+  googleClientId: string
 }
 
 const DEFAULTS: Settings = {
@@ -100,7 +101,8 @@ const DEFAULTS: Settings = {
   icsUrl: '',
   homeCards: [...DEFAULT_HOME_CARDS],
   focusMinutes: 25,
-  pet: 'cat'
+  pet: 'cat',
+  googleClientId: ''
 }
 
 export const S = reactive<Settings>(structuredClone(DEFAULTS))

@@ -80,3 +80,114 @@ export interface AppData {
   version: string
   anchor?: Anchor
 }
+
+export type ProviderKind = 'google' | 'windows' | 'github' | 'gitlab' | 'apple' | 'local'
+export type PhoneTransport = 'usb' | 'lan' | 'bluetooth'
+export type AvatarMood = 'idle' | 'celebrate' | 'alert' | 'meeting' | 'briefing'
+
+export interface AccountRecord {
+  id: string
+  provider: ProviderKind
+  label: string
+  email: string
+  isPrimary: boolean
+  status: string
+  lastSyncTs: number
+  details: string
+}
+
+export interface CanonicalEvent {
+  id: string
+  fingerprint: string
+  title: string
+  category: string
+  date: string
+  startTime: string
+  endTime: string
+  startTs: number
+  endTs: number
+  allDay: boolean
+  joinUrl: string
+  sourceProvider: ProviderKind
+  accountId: string
+}
+
+export interface UpcomingDate {
+  id: string
+  title: string
+  personName: string
+  kind: 'birthday' | 'anniversary' | 'holiday' | 'custom' | string
+  month: number
+  day: number
+  daysUntil: number
+  turningAge: number | null
+  sourceProvider: ProviderKind
+}
+
+export interface PhoneDevice {
+  id: string
+  name: string
+  platform: string
+  connected: boolean
+  activeTransport: PhoneTransport
+  batteryPct: number | null
+  charging: boolean
+  lastSeenTs: number
+}
+
+export interface PhoneSignalRecord {
+  id: string
+  deviceId: string
+  kind: 'notification' | 'call' | 'battery' | 'clipboard' | string
+  title: string
+  body: string
+  appName: string
+  ts: number
+}
+
+export interface ProactiveAlert {
+  key: string
+  level: 'urgent' | 'celebrate' | 'normal' | string
+  avatarMood: AvatarMood
+  icon: string
+  title: string
+  body: string
+  bubbleText: string
+  actionLabel: string
+  actionTarget: string
+  createdTs: number
+}
+
+export interface DevWorkItem {
+  id: string
+  provider: ProviderKind
+  repo: string
+  title: string
+  kind: string
+  url: string
+  updatedAt: string
+}
+
+export interface PairingInfo {
+  qrUri: string
+  host: string
+  port: number
+  token: string
+  adbAvailable: boolean
+  adbDevices: string[]
+  btPairedPhones: string[]
+}
+
+export interface AssistantSnapshot {
+  googleConnected: boolean
+  accounts: AccountRecord[]
+  upcomingDates: UpcomingDate[]
+  todayEvents: CanonicalEvent[]
+  allEvents: CanonicalEvent[]
+  peopleCount: number
+  phones: PhoneDevice[]
+  recentSignals: PhoneSignalRecord[]
+  alerts: ProactiveAlert[]
+  devItems: DevWorkItem[]
+}
+

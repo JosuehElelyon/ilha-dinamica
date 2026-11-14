@@ -24,14 +24,14 @@ function togglePlus() {
 </template>
 
 <style scoped>
-nav { position: relative; display: flex; justify-content: center; align-items: center; gap: 3px; padding: 12px 12px 14px; }
-.tabs { display: flex; gap: 3px; }
-.tab-btn { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 9px; border-radius: 15px;
+nav { position: relative; display: flex; justify-content: center; align-items: center; gap: 2px; padding: 12px 12px 14px; }
+.tabs { display: flex; gap: 2px; }
+.tab-btn { display: flex; align-items: center; gap: 5px; height: 30px; padding: 0 7.5px; border-radius: 15px;
   color: #a9a9b2; transition: background .2s, color .2s; }
-.tab-btn span { display: none; font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; font-weight: 600; }
+.tab-btn span { display: none; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; font-weight: 600; }
 .tab-btn:hover { color: #fff; background: rgba(255,255,255,.05); }
-.tab-btn.active { color: #fff; background: rgba(255,255,255,.1); padding: 0 12px; }
+.tab-btn.active { color: #fff; background: rgba(255,255,255,.1); padding: 0 11px; }
 .tab-btn.active span { display: inline; }
-.plus { position: absolute; left: 18px; color: #8b8b94; }
-.plus.active { padding: 0 9px; }
+.plus { position: absolute; left: 14px; color: #8b8b94; }
+.plus.active { padding: 0 7.5px; }
 </style>
