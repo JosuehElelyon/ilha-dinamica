@@ -389,7 +389,8 @@ pub fn start(app: AppHandle) {
                     };
                     let my_id = {
                         let state = app_udp.state::<crate::assistant::AssistantState>();
-                        state.kde.device_id.lock().unwrap().clone()
+                        let id = state.kde.device_id.lock().unwrap().clone();
+                        id
                     };
                     if ident.device_id == my_id {
                         continue;
@@ -399,26 +400,29 @@ pub fn start(app: AppHandle) {
                     let already_connected = {
                         let state = app_udp.state::<crate::assistant::AssistantState>();
                         let paired = state.kde.paired_ids.lock().unwrap().contains(&ident.device_id);
-                        let mut devs = state.kde.devices.lock().unwrap();
-                        let entry = devs.entry(ident.device_id.clone()).or_insert_with(|| KdeDeviceInfo {
-                            device_id: ident.device_id.clone(),
-                            device_name: ident.device_name.clone(),
-                            device_type: ident.device_type.clone(),
-                            ip: peer_ip.clone(),
-                            tcp_port: peer_port,
-                            paired,
-                            pair_requested_by_peer: false,
-                            connected: false,
-                            battery_pct: None,
-                            charging: false,
-                            last_seen_ts: now_ts(),
-                        });
-                        entry.device_name = ident.device_name.clone();
-                        entry.ip = peer_ip.clone();
-                        entry.tcp_port = peer_port;
-                        entry.paired = paired;
-                        entry.last_seen_ts = now_ts();
-                        state.kde.senders.lock().unwrap().contains_key(&ident.device_id)
+                        {
+                            let mut devs = state.kde.devices.lock().unwrap();
+                            let entry = devs.entry(ident.device_id.clone()).or_insert_with(|| KdeDeviceInfo {
+                                device_id: ident.device_id.clone(),
+                                device_name: ident.device_name.clone(),
+                                device_type: ident.device_type.clone(),
+                                ip: peer_ip.clone(),
+                                tcp_port: peer_port,
+                                paired,
+                                pair_requested_by_peer: false,
+                                connected: false,
+                                battery_pct: None,
+                                charging: false,
+                                last_seen_ts: now_ts(),
+                            });
+                            entry.device_name = ident.device_name.clone();
+                            entry.ip = peer_ip.clone();
+                            entry.tcp_port = peer_port;
+                            entry.paired = paired;
+                            entry.last_seen_ts = now_ts();
+                        }
+                        let has_sender = state.kde.senders.lock().unwrap().contains_key(&ident.device_id);
+                        has_sender
                     };
                     emit_devices_update(&app_udp);
 
@@ -625,7 +629,7 @@ where
                 if let Some(d) = state.kde.devices.lock().unwrap().get_mut(&peer_id) {
                     d.paired = false;
                     d.pair_requested_by_peer = false;
-                }
+                };
             }
             emit_devices_update(&app);
             continue;
@@ -633,7 +637,8 @@ where
 
         let paired_now = {
             let state = app.state::<crate::assistant::AssistantState>();
-            state.kde.paired_ids.lock().unwrap().contains(&peer_id)
+            let p = state.kde.paired_ids.lock().unwrap().contains(&peer_id);
+            p
         };
         if !paired_now {
             continue;
@@ -646,7 +651,7 @@ where
                     d.battery_pct = Some(*level);
                     d.charging = *charging;
                     d.last_seen_ts = now_ts();
-                }
+                };
                 emit_devices_update(&app);
             }
             if let PhoneBridgePacket::IncomingCall { .. } = &bridge_pkt {
@@ -669,7 +674,7 @@ where
         state.kde.senders.lock().unwrap().remove(&peer_id);
         if let Some(d) = state.kde.devices.lock().unwrap().get_mut(&peer_id) {
             d.connected = false;
-        }
+        };
     }
     emit_devices_update(&app);
     Ok(())
