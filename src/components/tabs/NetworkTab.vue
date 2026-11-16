@@ -8,6 +8,7 @@ import { live, refreshWifi, showToast } from '../../store/state'
 const nets = ref<WifiNet[]>([])
 const bt = ref<BtState>({ available: false, enabled: false, devices: [] })
 const scanning = ref(false)
+const loadError = ref('')
 const busySsid = ref('')
 const togglingBt = ref(false)
 
@@ -17,7 +18,10 @@ async function loadAll() {
     const [w, b] = await Promise.all([api.wifiScan(), api.btState()])
     nets.value = w
     bt.value = b
+    loadError.value = ''
     await refreshWifi()
+  } catch {
+    loadError.value = 'Não foi possível verificar as conexões agora.'
   } finally {
     scanning.value = false
   }
@@ -84,8 +88,24 @@ onMounted(loadAll)
       </div>
 
       <div class="list">
-        <div v-if="!nets.length && !scanning" class="empty-sm">Nenhuma rede Wi-Fi encontrada</div>
-        <div v-for="n in nets" :key="n.ssid" class="item" :class="{ active: n.connected }">
+        <template v-if="scanning && !nets.length">
+          <div v-for="n in 3" :key="'ws-' + n" class="item" aria-hidden="true">
+            <div class="imain skel-col">
+              <div class="skel skel-nm" :style="{ width: n === 1 ? '110px' : n === 2 ? '84px' : '98px' }" />
+              <div class="skel skel-sb" style="width: 68px" />
+            </div>
+            <span class="skel skel-bt" />
+          </div>
+        </template>
+        <div v-else-if="loadError && !nets.length" class="net-state">
+          <span class="empty-msg">{{ loadError }}</span>
+          <button class="pillbtn tiny" @click="loadAll">Tentar de novo</button>
+        </div>
+        <div v-else-if="!nets.length" class="net-state">
+          <span class="empty-msg">Nenhuma rede Wi-Fi encontrada por perto.</span>
+          <button class="pillbtn tiny" @click="loadAll">Procurar redes</button>
+        </div>
+        <div v-for="n in nets" v-else :key="n.ssid" class="item" :class="{ active: n.connected }">
           <div class="imain">
             <div class="iname">{{ n.ssid }}</div>
             <div class="isub mono">{{ n.signal }}% · {{ n.auth || 'Aberta' }}</div>
@@ -115,10 +135,29 @@ onMounted(loadAll)
       </div>
 
       <div class="list">
-        <div v-if="!bt.available" class="empty-sm">Adaptador Bluetooth não detectado</div>
-        <div v-else-if="!bt.enabled" class="empty-sm">Bluetooth desligado — ative na chave acima</div>
-        <div v-else-if="!bt.devices.length" class="empty-sm">Nenhum dispositivo pareado</div>
-        <div v-for="d in bt.devices" :key="d.id" class="item" :class="{ active: d.connected }">
+        <template v-if="scanning && !bt.available && !bt.devices.length">
+          <div v-for="n in 3" :key="'bs-' + n" class="item" aria-hidden="true">
+            <div class="imain skel-col">
+              <div class="skel skel-nm" :style="{ width: n === 1 ? '104px' : '78px' }" />
+              <div class="skel skel-sb" style="width: 74px" />
+            </div>
+            <span class="skel skel-dot" />
+          </div>
+        </template>
+        <div v-else-if="loadError && !bt.available" class="net-state">
+          <span class="empty-msg">{{ loadError }}</span>
+          <button class="pillbtn tiny" @click="loadAll">Tentar de novo</button>
+        </div>
+        <div v-else-if="!bt.available" class="empty-sm">Adaptador Bluetooth não detectado</div>
+        <div v-else-if="!bt.enabled" class="net-state">
+          <span class="empty-msg">Bluetooth desligado no momento.</span>
+          <button class="pillbtn tiny" :disabled="togglingBt" @click="toggleBt">Ligar Bluetooth</button>
+        </div>
+        <div v-else-if="!bt.devices.length" class="net-state">
+          <span class="empty-msg">Nenhum dispositivo pareado encontrado.</span>
+          <button class="pillbtn tiny" @click="api.runAction('ms-settings:bluetooth')">Parear dispositivo</button>
+        </div>
+        <div v-for="d in bt.devices" v-else :key="d.id" class="item" :class="{ active: d.connected }">
           <div class="imain">
             <div class="iname">{{ d.name }}</div>
             <div class="isub mono">{{ d.connected ? 'Conectado' : 'Pareado' }} · {{ d.kind }}</div>
@@ -171,4 +210,12 @@ onMounted(loadAll)
 .ibtn:hover { opacity: .9; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.2); flex: none; }
 .dot.on { background: #5be39a; box-shadow: 0 0 8px rgba(91,227,154,.6); }
+.net-state { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; padding: 12px; }
+.empty-msg { font-size: 11.5px; color: var(--mute); line-height: 1.35; }
+.tiny { padding: 3px 9px; font-size: 10.5px; }
+.skel-col { display: flex; flex-direction: column; gap: 4px; }
+.skel-nm { height: 12px; }
+.skel-sb { height: 9px; }
+.skel-bt { width: 64px; height: 20px; border-radius: 999px; flex: none; }
+.skel-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
 </style>

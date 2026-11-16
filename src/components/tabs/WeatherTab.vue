@@ -2,7 +2,7 @@
 // Clima: agora, próximas 8 horas e próximos 6 dias
 import { computed } from 'vue'
 import { DIAS_CURTOS, wmo } from '../../lib/format'
-import { weather } from '../../lib/weather'
+import { loadWeather, weather } from '../../lib/weather'
 
 const cur = computed(() => weather.data?.current)
 const hours = computed(() => {
@@ -34,21 +34,60 @@ const days = computed(() => {
 <template>
   <div class="wx">
     <div class="now">
-      <div class="main"><span class="e">{{ cur ? wmo(cur.weather_code, cur.is_day)[0] : '🌡️' }}</span>
-        <span class="mono t">{{ cur ? Math.round(cur.temperature_2m) + '°' : '--°' }}</span></div>
-      <div class="desc">{{ cur ? wmo(cur.weather_code, cur.is_day)[1] : (weather.error || 'Carregando…') }}</div>
-      <div class="mute">{{ weather.city }}</div>
-      <div v-if="cur" class="mute mono small">
-        SENSAÇÃO {{ Math.round(cur.apparent_temperature) }}°<br>UMIDADE {{ cur.relative_humidity_2m }}%<br>VENTO {{ Math.round(cur.wind_speed_10m) }} KM/H
-      </div>
+      <template v-if="weather.loading && !cur">
+        <div class="main">
+          <span class="skel skel-wx-ico" />
+          <span class="skel skel-wx-temp" />
+        </div>
+        <div class="skel skel-wx-line" style="width: 72%" />
+        <div class="skel skel-wx-sub" style="width: 52%" />
+        <div class="skel-wx-meta">
+          <div class="skel skel-wx-sub" style="width: 82%" />
+          <div class="skel skel-wx-sub" style="width: 68%" />
+          <div class="skel skel-wx-sub" style="width: 74%" />
+        </div>
+      </template>
+      <template v-else-if="weather.error && !cur">
+        <div class="wx-state">
+          <span class="desc">Sem previsão</span>
+          <span class="mute small">{{ weather.error }}</span>
+          <button class="pillbtn tiny" @click="loadWeather()">Tentar de novo</button>
+        </div>
+      </template>
+      <template v-else-if="!cur">
+        <div class="wx-state">
+          <span class="desc">Previsão do tempo</span>
+          <span class="mute small">Veja temperatura atual, próximas horas e 6 dias.</span>
+          <button class="pillbtn primary tiny" @click="loadWeather()">Carregar clima</button>
+        </div>
+      </template>
+      <template v-else>
+        <div class="main"><span class="e">{{ wmo(cur.weather_code, cur.is_day)[0] }}</span>
+          <span class="mono t">{{ Math.round(cur.temperature_2m) }}°</span></div>
+        <div class="desc">{{ wmo(cur.weather_code, cur.is_day)[1] }}</div>
+        <div class="mute">{{ weather.city }}</div>
+        <div class="mute mono small">
+          SENSAÇÃO {{ Math.round(cur.apparent_temperature) }}°<br>UMIDADE {{ cur.relative_humidity_2m }}%<br>VENTO {{ Math.round(cur.wind_speed_10m) }} KM/H
+        </div>
+      </template>
     </div>
     <div class="strip hours">
-      <div v-for="h in hours" :key="h.label" class="cell">
+      <template v-if="weather.loading && !hours.length">
+        <div v-for="n in 8" :key="'hs-' + n" class="cell" aria-hidden="true">
+          <span class="skel skel-k" /><span class="skel skel-ce" /><span class="skel skel-v" /><span class="skel skel-k" />
+        </div>
+      </template>
+      <div v-for="h in hours" v-else :key="h.label" class="cell">
         <span class="k">{{ h.label }}</span><span class="ce">{{ h.icon }}</span><span>{{ h.temp }}°</span><span class="r">{{ h.rain }}%</span>
       </div>
     </div>
     <div class="strip days">
-      <div v-for="d in days" :key="d.label" class="cell">
+      <template v-if="weather.loading && !days.length">
+        <div v-for="n in 6" :key="'ds-' + n" class="cell" aria-hidden="true">
+          <span class="skel skel-k" /><span class="skel skel-ce" /><span class="skel skel-v" /><span class="skel skel-k" />
+        </div>
+      </template>
+      <div v-for="d in days" v-else :key="d.label" class="cell">
         <span class="k">{{ d.label }}</span><span class="ce">{{ d.icon }}</span>
         <span>{{ d.max }}° <span class="mute">{{ d.min }}°</span></span><span class="r">{{ d.rain }}%</span>
       </div>
@@ -71,4 +110,14 @@ const days = computed(() => {
 .k { font-family: var(--mono); font-size: 10px; color: var(--mute); }
 .ce { font-size: 18px; }
 .r { font-size: 10px; color: #6cb6ff; font-family: var(--mono); }
+.tiny { padding: 3px 9px; font-size: 11px; }
+.wx-state { flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 7px; }
+.skel-wx-ico { width: 42px; height: 42px; border-radius: 12px; }
+.skel-wx-temp { width: 68px; height: 38px; border-radius: 10px; }
+.skel-wx-line { height: 14px; margin-top: 6px; }
+.skel-wx-sub { height: 10px; margin-top: 3px; }
+.skel-wx-meta { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.skel-k { width: 26px; height: 9px; }
+.skel-ce { width: 20px; height: 20px; border-radius: 6px; margin: 2px 0; }
+.skel-v { width: 28px; height: 13px; }
 </style>

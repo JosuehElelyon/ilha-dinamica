@@ -8,12 +8,23 @@ import { S, save } from '../../store/settings'
 import { island, showToast } from '../../store/state'
 
 const procs = ref<Proc[]>([])
+const loading = ref(true)
+const loadError = ref('')
 const filter = ref('')
 const group = ref(true)
 const confirmKey = ref<string | null>(null)
 let poll: number | undefined, confirmT: number | undefined
 
-async function refresh() { procs.value = await api.getProcs() }
+async function refresh() {
+  try {
+    procs.value = await api.getProcs()
+    loadError.value = ''
+  } catch {
+    if (!procs.value.length) loadError.value = 'Não foi possível listar os processos do sistema.'
+  } finally {
+    loading.value = false
+  }
+}
 onMounted(() => { refresh(); poll = window.setInterval(refresh, 3000) })
 onUnmounted(() => clearInterval(poll))
 
@@ -70,9 +81,24 @@ async function kill(r: Row) {
     </div>
     <div class="row head mono"><span>NOME</span><span>CPU</span><span>RAM</span><span>{{ procs.length }} ATIVOS</span></div>
     <div class="list">
-      <div v-if="!procs.length" class="empty">Carregando processos…</div>
-      <div v-else-if="!rows.length" class="empty">Nenhum processo encontrado</div>
-      <div v-for="r in rows" :key="keyOf(r)" class="row"
+      <template v-if="loading && !procs.length">
+        <div v-for="n in 6" :key="'ps-' + n" class="row" aria-hidden="true">
+          <span class="skel p-skel-nm" :style="{ width: n % 2 === 0 ? '48%' : '62%' }" />
+          <span class="skel p-skel-num" />
+          <span class="skel p-skel-num" />
+          <span class="skel p-skel-btn" />
+        </div>
+      </template>
+      <div v-else-if="loadError && !procs.length" class="p-state">
+        <span class="p-msg">{{ loadError }}</span>
+        <button class="pillbtn tiny" @click="refresh">Tentar de novo</button>
+      </div>
+      <div v-else-if="!rows.length" class="p-state">
+        <span class="p-msg">{{ filter ? 'Nenhum processo encontrado para essa busca.' : 'Os processos ativos aparecem aqui.' }}</span>
+        <button v-if="filter" class="pillbtn tiny" @click="filter = ''">Limpar busca</button>
+        <button v-else class="pillbtn tiny" @click="refresh">Atualizar</button>
+      </div>
+      <div v-for="r in rows" v-else :key="keyOf(r)" class="row"
            :title="group ? `PIDs: ${r.pids.slice(0, 12).join(', ')}${r.pids.length > 12 ? '…' : ''}` : `PID ${r.pids[0]}`">
         <span class="nm">{{ r.n }}<span v-if="r.count > 1" class="cnt">×{{ r.count }}</span></span>
         <span class="c" :class="{ hot: r.c >= 10 }">{{ r.c.toFixed(1).replace('.', ',') }}%</span>
@@ -89,8 +115,8 @@ async function kill(r: Row) {
 .procs { display: flex; flex-direction: column; gap: 6px; height: 100%; padding: 0 8px; }
 .top { display: flex; align-items: center; gap: 8px; }
 .top .seg { width: 110px; }
-.row { display: grid; grid-template-columns: 1fr 64px 84px 92px; align-items: center; gap: 8px; padding: 4px 8px; font-size: 12.5px; border-radius: 8px; }
-.head { font-size: 10px; color: var(--mute); padding-top: 0; padding-bottom: 0; }
+.row { display: grid; grid-template-columns: 1fr 64px 84px 92px; align-items: center; gap: 8px; padding: 4px 8px; font-size: 12.5px; border-radius: 8px; min-height: 29px; }
+.head { font-size: 10px; color: var(--mute); padding-top: 0; padding-bottom: 0; min-height: 0; }
 .head span:nth-child(n+2), .c, .m { text-align: right; }
 .list { flex: 1; min-height: 0; overflow-y: auto; }
 .list .row:hover { background: rgba(255,255,255,.05); }
@@ -102,4 +128,10 @@ async function kill(r: Row) {
 .kill:hover { background: rgba(255,91,78,.25); color: #fff; }
 .kill.confirm { background: #ff5b4e; color: #fff; font-weight: 700; }
 .lock { justify-self: end; font-size: 11px; color: var(--mute); padding-right: 6px; }
+.p-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 28px 8px; text-align: center; }
+.p-msg { color: var(--mute); font-size: 12px; }
+.tiny { padding: 3px 10px; font-size: 11px; }
+.p-skel-nm { height: 12px; }
+.p-skel-num { height: 11px; width: 42px; justify-self: end; }
+.p-skel-btn { height: 20px; width: 62px; border-radius: 10px; justify-self: end; }
 </style>

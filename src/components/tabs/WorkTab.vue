@@ -159,7 +159,10 @@ const mrClass = (m: Mr) => ({ draft: m.draft })
           <button class="pillbtn" :disabled="!st(o.id).hasToken || st(o.id).mrLoading" title="Atualizar" @click="loadMrs(o, true)">↻</button>
         </div>
       </div>
-      <div v-if="!S.orgs.length" class="empty">Nenhum órgão. Clique em “+ Órgão”.</div>
+      <div v-if="!S.orgs.length" class="w-state">
+        <span class="w-msg">Organize aqui sua VPN, repositórios e Merge Requests por órgão.</span>
+        <button class="pillbtn primary" @click="addOrg">+ Adicionar órgão</button>
+      </div>
     </div>
   </div>
 
@@ -187,7 +190,10 @@ const mrClass = (m: Mr) => ({ draft: m.draft })
         <button class="pillbtn" title="Abrir pasta no Explorer" @click="openUrl(r.path)">📂</button>
         <button class="pillbtn primary" @click="openRepo(r)">🚀 Antigravity</button>
       </div>
-      <div v-if="!org.repos?.length" class="empty small">Nenhum repositório configurado.</div>
+      <div v-if="!org.repos?.length" class="w-state">
+        <span class="w-msg">Adicione pastas de projetos para abrir rápido no Antigravity.</span>
+        <button class="pillbtn primary" @click="openConfig(org)">⚙ Configurar repositórios</button>
+      </div>
     </div>
   </div>
 
@@ -199,13 +205,22 @@ const mrClass = (m: Mr) => ({ draft: m.draft })
       <span class="mute small">{{ st(org.id).mrs?.user ? '@' + st(org.id).mrs?.user : '' }}</span>
       <button class="pillbtn" :disabled="st(org.id).mrLoading" @click="loadMrs(org, true)">{{ st(org.id).mrLoading ? '…' : '↻' }}</button>
     </div>
-    <div v-if="st(org.id).mrError" class="empty">{{ st(org.id).mrError }}</div>
+    <div v-if="st(org.id).mrError" class="w-state">
+      <span class="w-msg">Não foi possível carregar os Merge Requests agora.</span>
+      <button class="pillbtn" @click="loadMrs(org, true)">Tentar de novo</button>
+    </div>
     <div v-else class="mrcols">
       <div class="mrcol">
         <span class="set-label">PARA REVISAR ({{ st(org.id).mrs?.review.length ?? 0 }})</span>
         <div class="mrlist">
-          <div v-if="!st(org.id).mrs?.review.length" class="empty small">Nada para revisar 🎉</div>
-          <button v-for="m in st(org.id).mrs?.review" :key="m.id" class="mr" :class="mrClass(m)" :title="m.url" @click="openUrl(m.url)">
+          <template v-if="st(org.id).mrLoading && !st(org.id).mrs">
+            <div v-for="n in 3" :key="'mrs1-' + n" class="mr skel-mr" aria-hidden="true">
+              <span class="skel skel-mt" :style="{ width: n === 1 ? '76%' : '62%' }" />
+              <span class="skel skel-mm" style="width: 52%" />
+            </div>
+          </template>
+          <div v-else-if="!st(org.id).mrs?.review.length" class="empty small">Nada para revisar 🎉</div>
+          <button v-for="m in st(org.id).mrs?.review" v-else :key="m.id" class="mr" :class="mrClass(m)" :title="m.url" @click="openUrl(m.url)">
             <span class="mt">{{ m.draft ? '[Draft] ' : '' }}{{ m.title }}</span>
             <span class="mm">{{ m.project }} !{{ m.iid }} · {{ m.author }} · {{ ago(m.updated) }}</span>
           </button>
@@ -214,8 +229,14 @@ const mrClass = (m: Mr) => ({ draft: m.draft })
       <div class="mrcol">
         <span class="set-label">MEUS ({{ st(org.id).mrs?.mine.length ?? 0 }})</span>
         <div class="mrlist">
-          <div v-if="!st(org.id).mrs?.mine.length" class="empty small">Nenhum MR aberto</div>
-          <button v-for="m in st(org.id).mrs?.mine" :key="m.id" class="mr" :class="mrClass(m)" :title="m.url" @click="openUrl(m.url)">
+          <template v-if="st(org.id).mrLoading && !st(org.id).mrs">
+            <div v-for="n in 3" :key="'mrs2-' + n" class="mr skel-mr" aria-hidden="true">
+              <span class="skel skel-mt" :style="{ width: n === 1 ? '70%' : '58%' }" />
+              <span class="skel skel-mm" style="width: 48%" />
+            </div>
+          </template>
+          <div v-else-if="!st(org.id).mrs?.mine.length" class="empty small">Nenhum MR aberto</div>
+          <button v-for="m in st(org.id).mrs?.mine" v-else :key="m.id" class="mr" :class="mrClass(m)" :title="m.url" @click="openUrl(m.url)">
             <span class="mt"><span v-if="m.pipeline" :title="'Pipeline: ' + m.pipeline">{{ pipeIcon(m.pipeline) }} </span>{{ m.draft ? '[Draft] ' : '' }}{{ m.title }}</span>
             <span class="mm">{{ m.project }} !{{ m.iid }} · {{ ago(m.updated) }}<b v-if="m.conflicts" class="conf"> · conflito</b></span>
           </button>
@@ -362,4 +383,9 @@ a { color: var(--accent-2); cursor: pointer; text-decoration: underline; }
 .gstate { font-size: 10px; font-weight: 600; flex: none; }
 .gstate.dirty { color: #ffb070; }
 .gstate.clean { color: #5be39a; }
+.w-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 18px 8px; text-align: center; }
+.w-msg { font-size: 12px; color: var(--mute); max-width: 280px; line-height: 1.35; }
+.skel-mr { pointer-events: none; gap: 5px; }
+.skel-mt { height: 12px; }
+.skel-mm { height: 9px; }
 </style>

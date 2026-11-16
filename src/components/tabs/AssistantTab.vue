@@ -97,6 +97,17 @@ function daysBadge(n: number) {
   if (n === 1) return 'AMANHÃ'
   return `em ${n}d`
 }
+
+function friendlyError(raw: string) {
+  const s = (raw || '').toLowerCase()
+  if (s.includes('network') || s.includes('fetch') || s.includes('timeout') || s.includes('conex')) {
+    return 'Não foi possível conectar agora. Verifique sua internet e tente de novo.'
+  }
+  if (s.includes('401') || s.includes('token') || s.includes('auth') || s.includes('cred')) {
+    return 'Sua sessão expirou. Conecte a conta novamente.'
+  }
+  return 'Algo deu errado ao atualizar seus dados.'
+}
 </script>
 
 <template>
@@ -126,7 +137,10 @@ function daysBadge(n: number) {
       </div>
     </div>
 
-    <div v-if="assistant.error" class="err-bar">{{ assistant.error }}</div>
+    <div v-if="assistant.error" class="err-bar">
+      <span>{{ friendlyError(assistant.error) }}</span>
+      <button class="pillbtn tiny" :disabled="assistant.loading" @click="refreshAssistant()">Tentar de novo</button>
+    </div>
 
     <!-- ================= ABA HOJE ================= -->
     <div v-if="assistant.subTab === 'hoje'" class="hoje-grid">
@@ -161,7 +175,25 @@ function daysBadge(n: number) {
           </form>
 
           <div class="scroll-list">
-            <div v-for="d in assistant.snap.upcomingDates" :key="d.id" class="row-item" :class="{ today: d.daysUntil === 0 }">
+            <template v-if="assistant.loading && !assistant.snap.upcomingDates.length">
+              <div v-for="n in 3" :key="'sd-skel-' + n" class="row-item skel-row" aria-hidden="true">
+                <span class="skel skel-ico" />
+                <div class="row-txt skel-txt">
+                  <div class="skel skel-line" :style="{ width: n === 1 ? '68%' : n === 2 ? '54%' : '62%' }" />
+                  <div class="skel skel-sub" style="width: 42%" />
+                </div>
+                <span class="skel skel-pill" />
+              </div>
+            </template>
+            <div v-else-if="assistant.error && !assistant.snap.upcomingDates.length" class="state-box">
+              <span class="state-msg">{{ friendlyError(assistant.error) }}</span>
+              <button class="pillbtn tiny" @click="refreshAssistant()">Tentar de novo</button>
+            </div>
+            <div v-else-if="!assistant.snap.upcomingDates.length" class="state-box">
+              <span class="state-msg">Aqui ficam aniversários e datas importantes dos próximos 30 dias.</span>
+              <button class="pillbtn primary tiny" @click="showAddDate = true">+ Adicionar data</button>
+            </div>
+            <div v-for="d in assistant.snap.upcomingDates" v-else :key="d.id" class="row-item" :class="{ today: d.daysUntil === 0 }">
               <span class="ico-badge">{{ d.kind === 'birthday' ? '🎂' : '🎉' }}</span>
               <div class="row-txt">
                 <div class="row-title">
@@ -174,7 +206,6 @@ function daysBadge(n: number) {
               <button v-if="d.daysUntil === 0 && d.kind === 'birthday'" class="pillbtn tiny" title="Copiar e enviar parabéns" @click="sendBirthdayWish(d.personName || d.title)">🎉 Parabéns</button>
               <button v-if="d.id.startsWith('custom-')" class="del-x" title="Remover" @click="deleteImportantDate(d.id)">✕</button>
             </div>
-            <div v-if="!assistant.snap.upcomingDates.length" class="empty-sm">Sem datas nos próximos 30 dias</div>
           </div>
         </section>
 
@@ -186,27 +217,44 @@ function daysBadge(n: number) {
           </div>
 
           <div class="scroll-list">
-            <div v-for="ev in assistant.snap.todayEvents" :key="ev.id" class="row-item">
-              <span class="time-pill mono">{{ ev.allDay ? 'DIA' : ev.startTime }}</span>
-              <div class="row-txt">
-                <div class="row-title">{{ ev.title }}</div>
-                <div class="row-sub mute">{{ ev.sourceProvider }} {{ ev.endTime ? '· até ' + ev.endTime : '' }}</div>
+            <template v-if="assistant.loading && !assistant.snap.todayEvents.length && !assistant.snap.devItems.length">
+              <div v-for="n in 3" :key="'ev-skel-' + n" class="row-item skel-row" aria-hidden="true">
+                <span class="skel skel-time" />
+                <div class="row-txt skel-txt">
+                  <div class="skel skel-line" :style="{ width: n === 1 ? '72%' : n === 2 ? '58%' : '65%' }" />
+                  <div class="skel skel-sub" style="width: 48%" />
+                </div>
+                <span class="skel skel-pill" />
               </div>
-              <button v-if="ev.joinUrl" class="pillbtn primary tiny" @click="api.runAction(ev.joinUrl)">Entrar ↗</button>
+            </template>
+            <div v-else-if="assistant.error && !assistant.snap.todayEvents.length && !assistant.snap.devItems.length" class="state-box">
+              <span class="state-msg">{{ friendlyError(assistant.error) }}</span>
+              <button class="pillbtn tiny" @click="refreshAssistant()">Tentar de novo</button>
             </div>
-
-            <div v-for="dv in assistant.snap.devItems" :key="dv.id" class="row-item dev">
-              <span class="ico-badge">🐙</span>
-              <div class="row-txt">
-                <div class="row-title">{{ dv.title }}</div>
-                <div class="row-sub mute">{{ dv.repo }} · review pendente</div>
+            <div v-else-if="!assistant.snap.todayEvents.length && !assistant.snap.devItems.length" class="state-box">
+              <span class="state-msg">Seus compromissos de hoje e reviews pendentes aparecem aqui.</span>
+              <button v-if="!assistant.snap.googleConnected" class="pillbtn primary tiny" @click="openLoginModal()">Conectar Google</button>
+              <button v-else class="pillbtn tiny" :disabled="assistant.syncing" @click="syncWindowsCalendar(); syncGoogle()">↻ Sincronizar agora</button>
+            </div>
+            <template v-else>
+              <div v-for="ev in assistant.snap.todayEvents" :key="ev.id" class="row-item">
+                <span class="time-pill mono">{{ ev.allDay ? 'DIA' : ev.startTime }}</span>
+                <div class="row-txt">
+                  <div class="row-title">{{ ev.title }}</div>
+                  <div class="row-sub mute">{{ ev.sourceProvider }} {{ ev.endTime ? '· até ' + ev.endTime : '' }}</div>
+                </div>
+                <button v-if="ev.joinUrl" class="pillbtn primary tiny" @click="api.runAction(ev.joinUrl)">Entrar ↗</button>
               </div>
-              <button class="pillbtn tiny" @click="api.runAction(dv.url)">Abrir ↗</button>
-            </div>
 
-            <div v-if="!assistant.snap.todayEvents.length && !assistant.snap.devItems.length" class="empty-sm">
-              Nenhum evento ou pendência para hoje
-            </div>
+              <div v-for="dv in assistant.snap.devItems" :key="dv.id" class="row-item dev">
+                <span class="ico-badge">🐙</span>
+                <div class="row-txt">
+                  <div class="row-title">{{ dv.title }}</div>
+                  <div class="row-sub mute">{{ dv.repo }} · review pendente</div>
+                </div>
+                <button class="pillbtn tiny" @click="api.runAction(dv.url)">Abrir ↗</button>
+              </div>
+            </template>
           </div>
         </section>
       </div>
@@ -463,7 +511,7 @@ function daysBadge(n: number) {
 .chip.warn { color: #ffd23f; background: rgba(255,210,63,.14); }
 .chip.muted { color: var(--mute); }
 .tiny { padding: 3px 8px; font-size: 10.5px; }
-.err-bar { padding: 4px 10px; border-radius: 8px; background: rgba(255,107,94,.16); color: #ffb3ac; font-size: 11px; flex: none; }
+.err-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 10px; border-radius: 8px; background: rgba(255,107,94,.16); color: #ffb3ac; font-size: 11px; flex: none; }
 
 .hoje-grid { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 7px; }
 .google-banner {
@@ -502,6 +550,15 @@ function daysBadge(n: number) {
 .del-x { color: var(--mute); font-size: 11px; padding: 0 3px; }
 .del-x:hover { color: #ff6b5e; }
 .empty-sm { padding: 14px 4px; text-align: center; color: var(--mute); font-size: 11.5px; }
+.skel-row { pointer-events: none; min-height: 36px; }
+.skel-ico { width: 18px; height: 18px; border-radius: 5px; flex: none; }
+.skel-time { width: 38px; height: 16px; border-radius: 6px; flex: none; }
+.skel-txt { display: flex; flex-direction: column; gap: 4px; }
+.skel-line { height: 11px; }
+.skel-sub { height: 8px; }
+.skel-pill { width: 38px; height: 15px; border-radius: 999px; flex: none; }
+.state-box { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 10px 8px; text-align: center; }
+.state-msg { color: var(--mute); font-size: 11px; line-height: 1.35; max-width: 240px; }
 
 .contas-wrap { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .contas-grid {

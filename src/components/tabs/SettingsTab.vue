@@ -18,6 +18,10 @@ async function setCity() {
     cityMsg.value = 'Automática (pela sua conexão)'
     return loadWeather()
   }
+  if (q.length < 2) {
+    cityMsg.value = 'Digite pelo menos 2 letras'
+    return
+  }
   cityMsg.value = 'Buscando…'
   try {
     const r = await searchCity(q)
@@ -25,7 +29,10 @@ async function setCity() {
     save('city', { name: r.name, lat: r.lat, lon: r.lon })
     cityMsg.value = `Fixa: ${r.name}${r.region ? ', ' + r.region : ''}`
     loadWeather()
-  } catch { cityMsg.value = 'Sem conexão' }
+  } catch (e) {
+    if ((e as Error)?.name === 'AbortError') return
+    cityMsg.value = 'Sem conexão'
+  }
 }
 </script>
 

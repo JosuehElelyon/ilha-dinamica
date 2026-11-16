@@ -8,6 +8,7 @@ import { showToast } from './state'
 export const games = reactive({
   list: [] as Game[],
   loading: false,
+  error: '',
   steam: null as SteamInfo | null,
   friends: [] as Friend[],
   friendsError: '',
@@ -16,7 +17,14 @@ export const games = reactive({
 
 export async function loadGames() {
   games.loading = true
-  try { games.list = await api.gamesList() } finally { games.loading = false }
+  try {
+    games.list = await api.gamesList()
+    games.error = ''
+  } catch {
+    games.error = 'Não foi possível listar os jogos instalados.'
+  } finally {
+    games.loading = false
+  }
 }
 
 const playing: Record<string, string> = {}

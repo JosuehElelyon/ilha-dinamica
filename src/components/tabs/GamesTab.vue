@@ -68,9 +68,19 @@ onMounted(() => { if (!games.list.length) loadGames() })
         <button v-for="s in sources" :key="s.id" class="chip" :class="{ on: source === s.id }" @click="source = s.id">{{ s.label }}</button>
       </div>
       <div class="grid">
-        <div v-if="games.loading && !games.list.length" class="empty">Procurando jogos…</div>
-        <div v-else-if="!filtered.length" class="empty">Nenhum jogo encontrado (Steam, Epic Games e GOG)</div>
-        <button v-for="g in filtered" :key="g.id" class="game" :title="`${g.name}${g.size ? ' · ' + fmtSize(g.size) : ''} — clique para jogar`" @click="play(g)">
+        <template v-if="games.loading && !games.list.length">
+          <div v-for="n in 6" :key="'gskel-' + n" class="game skel" aria-hidden="true" />
+        </template>
+        <div v-else-if="games.error && !games.list.length" class="g-state">
+          <span class="g-msg">{{ games.error }}</span>
+          <button class="pillbtn tiny" @click="loadGames()">Tentar de novo</button>
+        </div>
+        <div v-else-if="!filtered.length" class="g-state">
+          <span class="g-msg">{{ q || source !== 'all' ? 'Nenhum jogo encontrado com esse filtro.' : 'Seus jogos da Steam, Epic Games e GOG aparecem aqui.' }}</span>
+          <button v-if="q || source !== 'all'" class="pillbtn tiny" @click="q = ''; source = 'all'">Limpar filtro</button>
+          <button v-else class="pillbtn tiny" @click="loadGames()">Procurar de novo</button>
+        </div>
+        <button v-for="g in filtered" v-else :key="g.id" class="game" :title="`${g.name}${g.size ? ' · ' + fmtSize(g.size) : ''} — clique para jogar`" @click="play(g)">
           <img v-if="g.image && !brokenImg.has(g.id)" :src="g.image" alt="" loading="lazy" @error="brokenImg.add(g.id)">
           <div v-else class="ph" :style="{ background: tile(g) }">{{ initials(g.name) }}</div>
           <span class="gname">{{ g.name }}</span>
@@ -106,9 +116,24 @@ onMounted(() => { if (!games.list.length) loadGames() })
       </form>
 
       <div v-else class="friends">
-        <div v-if="games.friendsError" class="empty small">{{ games.friendsError }}</div>
-        <div v-else-if="!games.friends.length" class="empty small">{{ games.friendsLoading ? 'Carregando…' : 'Nenhum amigo online' }}</div>
-        <div v-for="f in games.friends" :key="f.steamid" class="friend" :class="{ ingame: !!f.game, away: f.state > 1 }">
+        <template v-if="games.friendsLoading && !games.friends.length">
+          <div v-for="n in 3" :key="'fskel-' + n" class="friend" aria-hidden="true">
+            <span class="skel av" />
+            <div class="fi f-skel-txt">
+              <div class="skel f-skel-n" :style="{ width: n === 1 ? '62%' : '48%' }" />
+              <div class="skel f-skel-s" style="width: 40%" />
+            </div>
+          </div>
+        </template>
+        <div v-else-if="games.friendsError" class="f-state">
+          <span class="g-msg">Não foi possível carregar seus amigos da Steam.</span>
+          <button class="pillbtn tiny" @click="loadFriends()">Tentar de novo</button>
+        </div>
+        <div v-else-if="!games.friends.length" class="f-state">
+          <span class="g-msg">Nenhum amigo online no momento.</span>
+          <button class="pillbtn tiny" @click="loadFriends()">Atualizar</button>
+        </div>
+        <div v-for="f in games.friends" v-else :key="f.steamid" class="friend" :class="{ ingame: !!f.game, away: f.state > 1 }">
           <img v-if="f.avatar" :src="f.avatar" class="av" alt="">
           <div v-else class="av ph2">{{ initials(f.name) }}</div>
           <div class="fi">
@@ -157,8 +182,14 @@ onMounted(() => { if (!games.list.length) loadGames() })
 .ingame .fs { color: #a4d007; }
 .join { padding: 3px 9px; font-size: 11px; }
 .cfg { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; }
-.tiny { font-size: 10.5px; }
+.tiny { font-size: 10.5px; padding: 3px 9px; }
 .empty.small { padding: 12px 4px; font-size: 12px; }
+.g-state { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 22px 8px; text-align: center; }
+.f-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 12px 6px; text-align: center; }
+.g-msg { color: var(--mute); font-size: 11.5px; line-height: 1.35; }
+.f-skel-txt { gap: 4px; }
+.f-skel-n { height: 11px; }
+.f-skel-s { height: 9px; }
 a { color: var(--accent-2); cursor: pointer; text-decoration: underline; }
 code { font-family: var(--mono); color: var(--accent-2); }
 </style>

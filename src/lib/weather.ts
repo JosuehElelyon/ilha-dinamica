@@ -16,7 +16,7 @@ export interface Forecast {
   }
 }
 
-export const weather = reactive({ data: null as Forecast | null, city: '', error: '' })
+export const weather = reactive({ data: null as Forecast | null, city: '', loading: false, error: '' })
 
 let autoLoc: { name: string; lat: number; lon: number } | null = null
 
@@ -30,27 +30,44 @@ async function location() {
   return { name: 'São Paulo', lat: -23.55, lon: -46.63 }
 }
 
+let weatherAbort: AbortController | null = null
+let cityAbort: AbortController | null = null
+
 export async function loadWeather() {
-  const loc = await location()
-  weather.city = loc.name
+  weatherAbort?.abort()
+  const ctrl = (weatherAbort = new AbortController())
+  weather.loading = true
   try {
+    const loc = await location()
+    if (ctrl.signal.aborted) return
+    weather.city = loc.name
     const u = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}` +
       '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day' +
       '&hourly=temperature_2m,weather_code,precipitation_probability' +
       '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=6'
-    weather.data = await (await fetch(u)).json()
+    weather.data = await (await fetch(u, { signal: ctrl.signal })).json()
     weather.error = ''
     const c = weather.data!.current
     live.tempText = `${wmo(c.weather_code, c.is_day)[0]} ${Math.round(c.temperature_2m)}°`
-  } catch {
-    weather.error = 'Sem conexão'
+  } catch (e) {
+    if ((e as Error)?.name === 'AbortError') return
+    weather.error = 'Não foi possível carregar a previsão do tempo.'
+  } finally {
+    if (weatherAbort === ctrl) weather.loading = false
   }
 }
 
 export function resetAutoLocation() { autoLoc = null }
 
 export async function searchCity(q: string) {
-  const j = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=pt`)).json()
+  const term = q.trim()
+  if (term.length < 2) return null
+  cityAbort?.abort()
+  const ctrl = (cityAbort = new AbortController())
+  const j = await (await fetch(
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(term)}&count=1&language=pt`,
+    { signal: ctrl.signal }
+  )).json()
   const r = j.results && j.results[0]
   return r ? { name: r.name as string, region: (r.admin1 || r.country || '') as string, lat: r.latitude as number, lon: r.longitude as number } : null
 }
