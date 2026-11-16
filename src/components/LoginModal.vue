@@ -19,6 +19,8 @@ async function loginWithGoogle() {
   await connectGoogle(cid, advSecret.value.trim() || undefined)
   if (assistant.snap.googleConnected) {
     showAdv.value = false
+  } else if (assistant.error.includes('Client ID')) {
+    showAdv.value = true
   }
 }
 

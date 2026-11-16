@@ -104,6 +104,11 @@ impl PersonalMemoryDb {
                 fired_at INTEGER NOT NULL,
                 action_taken TEXT NOT NULL DEFAULT ''
             );
+
+            CREATE INDEX IF NOT EXISTS idx_canonical_events_date_start ON canonical_events(date, start_ts);
+            CREATE INDEX IF NOT EXISTS idx_canonical_events_account ON canonical_events(account_id);
+            CREATE INDEX IF NOT EXISTS idx_phone_signals_ts ON phone_signals(ts DESC);
+            CREATE INDEX IF NOT EXISTS idx_important_dates_person ON important_dates(person_id);
             ",
         )
         .map_err(|e| e.to_string())?;
@@ -127,16 +132,17 @@ impl PersonalMemoryDb {
             ("hol-12-25", 12, 25, "Natal"),
             ("hol-12-31", 12, 31, "Véspera de Ano Novo"),
         ];
+        let tx = self.conn.unchecked_transaction().map_err(|e| e.to_string())?;
         for (id, m, d, label) in holidays {
-            self.conn
-                .execute(
-                    "INSERT OR IGNORE INTO important_dates
-                     (id, person_id, person_name, kind, month, day, year_optional, label, source_provider)
-                     VALUES (?1, NULL, '', 'holiday', ?2, ?3, NULL, ?4, 'local')",
-                    params![id, *m as i64, *d as i64, label],
-                )
-                .map_err(|e| e.to_string())?;
+            tx.execute(
+                "INSERT OR IGNORE INTO important_dates
+                 (id, person_id, person_name, kind, month, day, year_optional, label, source_provider)
+                 VALUES (?1, NULL, '', 'holiday', ?2, ?3, NULL, ?4, 'local')",
+                params![id, *m as i64, *d as i64, label],
+            )
+            .map_err(|e| e.to_string())?;
         }
+        tx.commit().map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -275,15 +281,31 @@ impl PersonalMemoryDb {
         account_id: &str,
         events: &[CanonicalEvent],
     ) -> Result<(), String> {
-        self.conn
-            .execute(
-                "DELETE FROM canonical_events WHERE account_id = ?1",
-                params![account_id],
-            )
-            .map_err(|e| e.to_string())?;
+        let tx = self.conn.unchecked_transaction().map_err(|e| e.to_string())?;
+        tx.execute(
+            "DELETE FROM canonical_events WHERE account_id = ?1",
+            params![account_id],
+        )
+        .map_err(|e| e.to_string())?;
         for ev in events {
             self.upsert_event(ev)?;
         }
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn upsert_contacts_batch(
+        &self,
+        contacts: &[(PersonRecord, Vec<ImportantDate>)],
+    ) -> Result<(), String> {
+        let tx = self.conn.unchecked_transaction().map_err(|e| e.to_string())?;
+        for (person, dates) in contacts {
+            self.upsert_person(person)?;
+            for d in dates {
+                self.upsert_important_date(d)?;
+            }
+        }
+        tx.commit().map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -666,5 +688,83 @@ mod tests {
         let amanda = up.iter().find(|u| u.id == "bday-p1").unwrap();
         assert_eq!(amanda.days_until, 1);
         assert_eq!(amanda.turning_age, Some(30));
+    }
+
+    #[test]
+    fn bench_batch_sync_disk_sqlite() {
+        let path = std::env::temp_dir().join(format!("ilha_bench_{}.db", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let db = PersonalMemoryDb::open(&path).unwrap();
+
+        let events: Vec<CanonicalEvent> = (0..80)
+            .map(|i| CanonicalEvent {
+                id: format!("ev-{i}"),
+                fingerprint: format!("fp-{i}"),
+                title: format!("Reunião {i}"),
+                category: "meeting".into(),
+                date: "2026-11-16".into(),
+                start_time: "10:00".into(),
+                end_time: "10:30".into(),
+                start_ts: 1794800000 + i * 60,
+                end_ts: 1794801800 + i * 60,
+                all_day: false,
+                join_url: "".into(),
+                source_provider: ProviderKind::Google,
+                account_id: "google:bench".into(),
+            })
+            .collect();
+
+        let contacts: Vec<(PersonRecord, Vec<ImportantDate>)> = (0..300)
+            .map(|i| {
+                let p = PersonRecord {
+                    id: format!("p-{i}"),
+                    name: format!("Contato {i}"),
+                    relation: "".into(),
+                    email: format!("c{i}@example.com"),
+                    phone: "".into(),
+                    source_provider: ProviderKind::Google,
+                };
+                let d = ImportantDate {
+                    id: format!("bd-{i}"),
+                    person_id: Some(format!("p-{i}")),
+                    person_name: format!("Contato {i}"),
+                    kind: "birthday".into(),
+                    month: ((i % 12) + 1) as u32,
+                    day: ((i % 28) + 1) as u32,
+                    year_optional: Some(1990),
+                    label: format!("Aniversário {i}"),
+                    source_provider: ProviderKind::Google,
+                };
+                (p, vec![d])
+            })
+            .collect();
+
+        let t0 = std::time::Instant::now();
+        db.replace_account_events("google:bench", &events).unwrap();
+        db.upsert_contacts_batch(&contacts).unwrap();
+        let elapsed_ms = t0.elapsed().as_secs_f64() * 1000.0;
+        println!("BENCH_DEPOIS_MS={elapsed_ms:.2}");
+        drop(db);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn explain_query_plans_check() {
+        let db = PersonalMemoryDb::open_in_memory().unwrap();
+        let queries = [
+            ("events_for_date", "EXPLAIN QUERY PLAN SELECT id FROM canonical_events WHERE date = '2026-11-16' ORDER BY start_ts ASC"),
+            ("upcoming_events", "EXPLAIN QUERY PLAN SELECT id FROM canonical_events WHERE date >= '2026-11-16' ORDER BY date ASC, start_ts ASC LIMIT 60"),
+            ("events_by_account", "EXPLAIN QUERY PLAN DELETE FROM canonical_events WHERE account_id = 'google:x'"),
+            ("recent_signals", "EXPLAIN QUERY PLAN SELECT id FROM phone_signals ORDER BY ts DESC LIMIT 15"),
+        ];
+        for (name, sql) in queries {
+            let mut stmt = db.conn.prepare(sql).unwrap();
+            let details: Vec<String> = stmt
+                .query_map([], |r| r.get::<_, String>(3))
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect();
+            println!("EQP[{name}]: {}", details.join(" | "));
+        }
     }
 }

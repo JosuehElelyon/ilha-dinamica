@@ -125,7 +125,7 @@ pub async fn start_oauth_pkce(
         .filter(|s| !s.is_empty())
         .or_else(|| option_env!("ILHA_GOOGLE_CLIENT_ID").map(|s| s.trim().to_string()).filter(|s| !s.is_empty()))
         .or_else(|| std::env::var("ILHA_GOOGLE_CLIENT_ID").ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()))
-        .ok_or_else(|| "OAuth Google do aplicativo não configurado neste build. Abra Config. avançada na tela de Login para informar um Client ID.".to_string())?;
+        .ok_or_else(|| "OAuth Google ainda não configurado neste build. Cole um Client ID (App para computador) abaixo ou configure ILHA_GOOGLE_CLIENT_ID nos segredos do GitHub.".to_string())?;
 
     let client_secret = client_secret
         .map(|s| s.trim().to_string())
@@ -302,29 +302,32 @@ pub async fn sync_google() -> Result<GoogleSyncBundle, String> {
         url_encode(&time_min),
         url_encode(&time_max)
     );
-    let cal_json: Value = http
-        .get(&cal_url)
-        .bearer_auth(&tok.access_token)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .unwrap_or_default();
-
-    let events = parse_google_calendar_events(&cal_json, &account_id);
+    let cal_fut = async {
+        let resp = http
+            .get(&cal_url)
+            .bearer_auth(&tok.access_token)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok::<Value, String>(resp.json::<Value>().await.unwrap_or_default())
+    };
 
     let people_url = "https://people.googleapis.com/v1/people/me/connections?personFields=names,birthdays,events,emailAddresses,phoneNumbers&pageSize=300";
-    let people_json: Value = http
-        .get(people_url)
-        .bearer_auth(&tok.access_token)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .unwrap_or_default();
+    let people_fut = async {
+        let resp = http
+            .get(people_url)
+            .bearer_auth(&tok.access_token)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok::<Value, String>(resp.json::<Value>().await.unwrap_or_default())
+    };
 
+    let (cal_res, people_res) = tokio::join!(cal_fut, people_fut);
+    let cal_json = cal_res?;
+    let people_json = people_res?;
+
+    let events = parse_google_calendar_events(&cal_json, &account_id);
     let contacts = parse_google_contacts(&people_json);
 
     let account = AccountRecord {

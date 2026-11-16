@@ -90,40 +90,49 @@ pub fn init(app: &AppHandle) {
 }
 
 async fn sync_all_connected_accounts(app: &AppHandle) {
-    if google::load_tokens().is_some() {
-        let _ = assistant_google_sync(app.clone()).await;
-    }
-    if connectors::has_github_token() {
-        if let Ok((acc, items)) = connectors::sync_github().await {
-            {
-                let state = app.state::<AssistantState>();
-                let guard = state.db.lock().unwrap();
-                if let Some(db) = guard.as_ref() {
-                    let _ = db.upsert_account(&acc);
-                }
-                *state.dev_items.lock().unwrap() = items;
-            }
-            emit_snapshot_and_notify(app);
+    let has_google = google::load_tokens().is_some();
+    let has_github = connectors::has_github_token();
+    let has_apple = connectors::load_apple_creds().is_some();
+
+    let google_fut = async {
+        if has_google {
+            let _ = assistant_google_sync(app.clone()).await;
         }
-    }
-    if connectors::load_apple_creds().is_some() {
-        if let Ok((acc, contacts)) = connectors::sync_apple_icloud().await {
-            {
-                let state = app.state::<AssistantState>();
-                let guard = state.db.lock().unwrap();
-                if let Some(db) = guard.as_ref() {
-                    let _ = db.upsert_account(&acc);
-                    for (person, dates) in &contacts {
-                        let _ = db.upsert_person(person);
-                        for d in dates {
-                            let _ = db.upsert_important_date(d);
-                        }
+    };
+
+    let github_fut = async {
+        if has_github {
+            if let Ok((acc, items)) = connectors::sync_github().await {
+                {
+                    let state = app.state::<AssistantState>();
+                    let guard = state.db.lock().unwrap();
+                    if let Some(db) = guard.as_ref() {
+                        let _ = db.upsert_account(&acc);
+                    }
+                    *state.dev_items.lock().unwrap() = items;
+                }
+                emit_snapshot_and_notify(app);
+            }
+        }
+    };
+
+    let apple_fut = async {
+        if has_apple {
+            if let Ok((acc, contacts)) = connectors::sync_apple_icloud().await {
+                {
+                    let state = app.state::<AssistantState>();
+                    let guard = state.db.lock().unwrap();
+                    if let Some(db) = guard.as_ref() {
+                        let _ = db.upsert_account(&acc);
+                        let _ = db.upsert_contacts_batch(&contacts);
                     }
                 }
+                emit_snapshot_and_notify(app);
             }
-            emit_snapshot_and_notify(app);
         }
-    }
+    };
+
+    tokio::join!(google_fut, github_fut, apple_fut);
 }
 
 fn sync_windows_into_db(app: &AppHandle) -> Result<usize, String> {
@@ -259,12 +268,7 @@ pub async fn assistant_google_sync(app: AppHandle) -> Result<AssistantSnapshot, 
         if let Some(db) = guard.as_ref() {
             db.upsert_account(&bundle.account)?;
             db.replace_account_events(&bundle.account.id, &bundle.events)?;
-            for (person, dates) in &bundle.contacts {
-                let _ = db.upsert_person(person);
-                for d in dates {
-                    let _ = db.upsert_important_date(d);
-                }
-            }
+            let _ = db.upsert_contacts_batch(&bundle.contacts);
         }
     }
     emit_snapshot_and_notify(&app);

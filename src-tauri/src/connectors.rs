@@ -157,56 +157,67 @@ pub async fn sync_github() -> Result<(AccountRecord, Vec<DevWorkItem>), String> 
 
     let mut items = Vec::new();
     let q = format!("https://api.github.com/search/issues?q=is:open+is:pr+review-requested:{login}&per_page=10");
-    if let Ok(resp) = http
-        .get(&q)
-        .bearer_auth(&tok)
-        .header("Accept", "application/vnd.github+json")
-        .send()
-        .await
-    {
-        if let Ok(val) = resp.json::<Value>().await {
-            if let Some(arr) = val["items"].as_array() {
-                for it in arr {
-                    let url = it["html_url"].as_str().unwrap_or("").to_string();
-                    let repo = it["repository_url"]
-                        .as_str()
-                        .and_then(|u| u.rsplit('/').take(2).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("/").into())
-                        .unwrap_or_default();
-                    items.push(DevWorkItem {
-                        id: format!("gh-pr-{}", it["id"].as_u64().unwrap_or(0)),
-                        provider: ProviderKind::GitHub,
-                        repo,
-                        title: it["title"].as_str().unwrap_or("PR").to_string(),
-                        kind: "review".into(),
-                        url,
-                        updated_at: it["updated_at"].as_str().unwrap_or("").to_string(),
-                    });
-                }
+    let prs_fut = async {
+        match http
+            .get(&q)
+            .bearer_auth(&tok)
+            .header("Accept", "application/vnd.github+json")
+            .send()
+            .await
+        {
+            Ok(resp) => resp.json::<Value>().await.ok(),
+            Err(_) => None,
+        }
+    };
+    let notifs_fut = async {
+        match http
+            .get("https://api.github.com/notifications?per_page=8")
+            .bearer_auth(&tok)
+            .header("Accept", "application/vnd.github+json")
+            .send()
+            .await
+        {
+            Ok(resp) => resp.json::<Value>().await.ok(),
+            Err(_) => None,
+        }
+    };
+
+    let (prs_val, notifs_val) = tokio::join!(prs_fut, notifs_fut);
+
+    if let Some(val) = prs_val {
+        if let Some(arr) = val["items"].as_array() {
+            for it in arr {
+                let url = it["html_url"].as_str().unwrap_or("").to_string();
+                let repo = it["repository_url"]
+                    .as_str()
+                    .and_then(|u| u.rsplit('/').take(2).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("/").into())
+                    .unwrap_or_default();
+                items.push(DevWorkItem {
+                    id: format!("gh-pr-{}", it["id"].as_u64().unwrap_or(0)),
+                    provider: ProviderKind::GitHub,
+                    repo,
+                    title: it["title"].as_str().unwrap_or("PR").to_string(),
+                    kind: "review".into(),
+                    url,
+                    updated_at: it["updated_at"].as_str().unwrap_or("").to_string(),
+                });
             }
         }
     }
 
-    if let Ok(resp) = http
-        .get("https://api.github.com/notifications?per_page=8")
-        .bearer_auth(&tok)
-        .header("Accept", "application/vnd.github+json")
-        .send()
-        .await
-    {
-        if let Ok(Value::Array(arr)) = resp.json::<Value>().await {
-            for n in arr {
-                let title = n["subject"]["title"].as_str().unwrap_or("Notificação").to_string();
-                let repo = n["repository"]["full_name"].as_str().unwrap_or("").to_string();
-                items.push(DevWorkItem {
-                    id: format!("gh-notif-{}", n["id"].as_str().unwrap_or("0")),
-                    provider: ProviderKind::GitHub,
-                    repo: repo.clone(),
-                    title,
-                    kind: "notification".into(),
-                    url: format!("https://github.com/{repo}"),
-                    updated_at: n["updated_at"].as_str().unwrap_or("").to_string(),
-                });
-            }
+    if let Some(Value::Array(arr)) = notifs_val {
+        for n in arr {
+            let title = n["subject"]["title"].as_str().unwrap_or("Notificação").to_string();
+            let repo = n["repository"]["full_name"].as_str().unwrap_or("").to_string();
+            items.push(DevWorkItem {
+                id: format!("gh-notif-{}", n["id"].as_str().unwrap_or("0")),
+                provider: ProviderKind::GitHub,
+                repo: repo.clone(),
+                title,
+                kind: "notification".into(),
+                url: format!("https://github.com/{repo}"),
+                updated_at: n["updated_at"].as_str().unwrap_or("").to_string(),
+            });
         }
     }
 

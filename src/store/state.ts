@@ -83,9 +83,18 @@ export async function installUpdate() {
 let autoUpdateEnabled = () => true
 export function setAutoUpdateGetter(fn: () => boolean) { autoUpdateEnabled = fn }
 
-/** Relógio compartilhado (atualiza 4x por segundo) */
+/** Relógio compartilhado (250 ms quando expandida/timer ativo; 1000 ms em repouso) */
 export const now = ref(Date.now())
-setInterval(() => (now.value = Date.now()), 250)
+let nowTimer: number | undefined
+function scheduleNowTick() {
+  clearTimeout(nowTimer)
+  const fast = island.expanded || stopwatch.running || focus.running || timer.running
+  nowTimer = window.setTimeout(() => {
+    now.value = Date.now()
+    scheduleNowTick()
+  }, fast ? 250 : 1000)
+}
+nowTimer = window.setTimeout(scheduleNowTick, 1000)
 
 let toastTimer: number | undefined
 export function showToast(t: Toast) {

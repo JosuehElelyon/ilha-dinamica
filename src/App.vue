@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Ilha Dinâmica — componente raiz: expandir/recolher, tema, avisos e carregamento inicial.
 // Copyright (c) 2026 Josueh — Licença MIT
-import { computed, onMounted, ref, watch, type Component } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { api } from './lib/api'
 import { hexHue, hashHue, hueFromImage } from './lib/format'
 import { loadWeather } from './lib/weather'
@@ -12,36 +12,35 @@ import type { Devices, VolInfo } from './lib/types'
 import IslandPill from './components/IslandPill.vue'
 import IslandHeader from './components/IslandHeader.vue'
 import NavBar from './components/NavBar.vue'
-import CommandPalette from './components/CommandPalette.vue'
-import LoginModal from './components/LoginModal.vue'
 import HomeTab from './components/tabs/HomeTab.vue'
-import ActionsTab from './components/tabs/ActionsTab.vue'
-import ToolsTab from './components/tabs/ToolsTab.vue'
-import WorkTab from './components/tabs/WorkTab.vue'
-import GamesTab from './components/tabs/GamesTab.vue'
 import { initGames } from './store/games'
 import { initWork } from './store/work'
-import SnippetsTab from './components/tabs/SnippetsTab.vue'
-import ClipsTab from './components/tabs/ClipsTab.vue'
-import NotesTab from './components/tabs/NotesTab.vue'
-import TimerTab from './components/tabs/TimerTab.vue'
-import CalendarTab from './components/tabs/CalendarTab.vue'
-import WeatherTab from './components/tabs/WeatherTab.vue'
-import AudioTab from './components/tabs/AudioTab.vue'
-import NetworkTab from './components/tabs/NetworkTab.vue'
-import SystemTab from './components/tabs/SystemTab.vue'
-import CleanTab from './components/tabs/CleanTab.vue'
-import ProcessesTab from './components/tabs/ProcessesTab.vue'
-import ModulesTab from './components/tabs/ModulesTab.vue'
-import SettingsTab from './components/tabs/SettingsTab.vue'
-import PetsTab from './components/tabs/PetsTab.vue'
-import AssistantTab from './components/tabs/AssistantTab.vue'
 import { initAssistant } from './store/assistant'
 
+const CommandPalette = defineAsyncComponent(() => import('./components/CommandPalette.vue'))
+const LoginModal = defineAsyncComponent(() => import('./components/LoginModal.vue'))
+
 const TABS: Record<string, Component> = {
-  home: HomeTab, assistant: AssistantTab, work: WorkTab, games: GamesTab, actions: ActionsTab, tools: ToolsTab, snippets: SnippetsTab, clips: ClipsTab, notes: NotesTab, timer: TimerTab,
-  cal: CalendarTab, weather: WeatherTab, audio: AudioTab, net: NetworkTab, sys: SystemTab, clean: CleanTab,
-  procs: ProcessesTab, modules: ModulesTab, settings: SettingsTab, pets: PetsTab
+  home: HomeTab,
+  assistant: defineAsyncComponent(() => import('./components/tabs/AssistantTab.vue')),
+  work: defineAsyncComponent(() => import('./components/tabs/WorkTab.vue')),
+  games: defineAsyncComponent(() => import('./components/tabs/GamesTab.vue')),
+  actions: defineAsyncComponent(() => import('./components/tabs/ActionsTab.vue')),
+  tools: defineAsyncComponent(() => import('./components/tabs/ToolsTab.vue')),
+  snippets: defineAsyncComponent(() => import('./components/tabs/SnippetsTab.vue')),
+  clips: defineAsyncComponent(() => import('./components/tabs/ClipsTab.vue')),
+  notes: defineAsyncComponent(() => import('./components/tabs/NotesTab.vue')),
+  timer: defineAsyncComponent(() => import('./components/tabs/TimerTab.vue')),
+  cal: defineAsyncComponent(() => import('./components/tabs/CalendarTab.vue')),
+  weather: defineAsyncComponent(() => import('./components/tabs/WeatherTab.vue')),
+  audio: defineAsyncComponent(() => import('./components/tabs/AudioTab.vue')),
+  net: defineAsyncComponent(() => import('./components/tabs/NetworkTab.vue')),
+  sys: defineAsyncComponent(() => import('./components/tabs/SystemTab.vue')),
+  clean: defineAsyncComponent(() => import('./components/tabs/CleanTab.vue')),
+  procs: defineAsyncComponent(() => import('./components/tabs/ProcessesTab.vue')),
+  modules: defineAsyncComponent(() => import('./components/tabs/ModulesTab.vue')),
+  settings: defineAsyncComponent(() => import('./components/tabs/SettingsTab.vue')),
+  pets: defineAsyncComponent(() => import('./components/tabs/PetsTab.vue')),
 }
 
 const el = ref<HTMLElement>()
@@ -94,12 +93,15 @@ function onFocusOut() { setTimeout(() => { if (!island.hovering) collapse() }, 6
 
 // informa ao Rust onde a ilha está, para o clique passar pelo resto da janela
 let lastRect = ''
-setInterval(() => {
+let hitObserver: ResizeObserver | null = null
+function syncHitRect() {
   if (!el.value) return
   const r = el.value.getBoundingClientRect()
   const key = [r.x, r.y, r.width, r.height].map(Math.round).join(',')
   if (key !== lastRect) { lastRect = key; api.setHitRect(r.x, r.y, r.width, r.height) }
-}, 100)
+}
+watch(() => [island.expanded, island.anchor.x, island.anchor.y], () => nextTick(syncHitRect))
+onBeforeUnmount(() => hitObserver?.disconnect())
 
 /* ---------------- tema ---------------- */
 const themeStyle = computed(() => {
@@ -188,6 +190,12 @@ onMounted(async () => {
   reminders.value = (d.reminders || []).map(r => (!r.fired && remDate(r).getTime() < limite ? { ...r, fired: true } : r))
   island.tab = activeModules()[0] || 'home'
   ready.value = true
+  await nextTick()
+  syncHitRect()
+  if (el.value && typeof ResizeObserver !== 'undefined') {
+    hitObserver = new ResizeObserver(syncHitRect)
+    hitObserver.observe(el.value)
+  }
   loadWeather()
   setInterval(loadWeather, 30 * 60 * 1000)
   initWork()

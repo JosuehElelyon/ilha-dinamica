@@ -27,7 +27,7 @@ keyring = { version = "3", features = ["windows-native"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls"] }
 chrono = { version = "0.4", features = ["serde"] }
 sha2 = "0.10"
-tokio = { version = "1", features = ["rt-multi-thread"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 assistant-core = { path = "../crates/assistant-core" }
 
 [target.'cfg(windows)'.dependencies]
