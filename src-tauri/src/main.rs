@@ -14,6 +14,7 @@ mod games;
 mod gitlab;
 mod google;
 mod hover;
+mod kdeconnect;
 mod logger;
 mod media;
 mod network;
