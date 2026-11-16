@@ -13,12 +13,13 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_notification::NotificationExt;
 
-use crate::{connectors, google, phone_bridge, win_calendar};
+use crate::{connectors, google, kdeconnect, phone_bridge, win_calendar};
 
 pub struct AssistantState {
     pub db: Mutex<Option<PersonalMemoryDb>>,
     pub dev_items: Mutex<Vec<DevWorkItem>>,
     pub bridge: phone_bridge::BridgeRuntime,
+    pub kde: kdeconnect::KdeConnectRuntime,
 }
 
 impl Default for AssistantState {
@@ -27,6 +28,7 @@ impl Default for AssistantState {
             db: Mutex::new(None),
             dev_items: Mutex::new(Vec::new()),
             bridge: phone_bridge::BridgeRuntime::default(),
+            kde: kdeconnect::KdeConnectRuntime::default(),
         }
     }
 }
@@ -60,6 +62,7 @@ pub fn init(app: &AppHandle) {
     let tok = phone_bridge::ensure_token();
     *state.bridge.token.lock().unwrap() = tok.clone();
     phone_bridge::start_listener(app.clone(), tok, &state.bridge.port);
+    kdeconnect::start(app.clone());
 
     // Sincronização inicial + ticker proativo em background (Windows + contas conectadas)
     let app_bg = app.clone();

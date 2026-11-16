@@ -7,16 +7,18 @@ import { pad } from '../../lib/format'
 import { S, save } from '../../store/settings'
 import {
   addImportantDate, assistant, cancelGithubDeviceFlow, connectApple, connectGitHub,
-  deleteImportantDate, disconnectAccount, enableUsbBridge, openLoginModal, primaryPhone,
-  refreshAssistant, ringPhone, rotatePairingToken, sendBirthdayWish, sendClipboardToPhone,
+  connectKdeIp, deleteImportantDate, disconnectAccount, enableUsbBridge, findKdePhone,
+  openLoginModal, pairKdeDevice, primaryPhone, refreshAssistant, ringPhone, rotatePairingToken,
+  scanKdeDevices, sendBirthdayWish, sendClipboardKde, sendClipboardToPhone,
   startGithubDeviceFlow, syncGoogle, syncWindowsCalendar, toggleAutoPauseOnCall,
   triggerTestPhoneSignal
 } from '../../store/assistant'
 import { island, showToast } from '../../store/state'
 
 const qrDataUrl = ref('')
-const phoneMode = ref<'lan' | 'usb' | 'bluetooth'>('lan')
+const phoneMode = ref<'lan' | 'usb' | 'bluetooth' | 'kde'>('lan')
 const qrMode = ref<'web' | 'uri'>('web')
+const kdeIp = ref('')
 
 // Formulário rápido para adicionar aniversário/data comemorativa
 const showAddDate = ref(false)
@@ -326,8 +328,9 @@ function daysBadge(n: number) {
           <span class="set-label">CONEXÃO COM CELULAR</span>
           <div class="seg mini-seg">
             <button :class="{ on: phoneMode === 'lan' }" @click="phoneMode = 'lan'">Wi-Fi</button>
-            <button :class="{ on: phoneMode === 'usb' }" @click="phoneMode = 'usb'">Cabo USB</button>
-            <button :class="{ on: phoneMode === 'bluetooth' }" @click="phoneMode = 'bluetooth'">Bluetooth</button>
+            <button :class="{ on: phoneMode === 'usb' }" @click="phoneMode = 'usb'">USB</button>
+            <button :class="{ on: phoneMode === 'bluetooth' }" @click="phoneMode = 'bluetooth'">BT</button>
+            <button :class="{ on: phoneMode === 'kde' }" @click="phoneMode = 'kde'">KDE</button>
           </div>
         </div>
 
@@ -363,7 +366,7 @@ function daysBadge(n: number) {
           </div>
         </div>
 
-        <div v-else class="transport-box">
+        <div v-else-if="phoneMode === 'bluetooth'" class="transport-box">
           <div class="row-title">Bluetooth (Proximidade / ANCS)</div>
           <div class="mute small">
             Pareados: <b>{{ assistant.pairing?.btPairedPhones.length ? assistant.pairing.btPairedPhones.join(', ') : 'Nenhum celular pareado' }}</b>
@@ -372,6 +375,40 @@ function daysBadge(n: number) {
           <div class="form-btns">
             <button class="pillbtn primary tiny" @click="island.tab = 'net'">Gerenciar Bluetooth ↗</button>
             <button class="pillbtn tiny" @click="api.runAction('ms-settings:bluetooth')">Config. Windows ↗</button>
+          </div>
+        </div>
+
+        <div v-else class="transport-box" style="gap:4px">
+          <div class="box-head">
+            <div class="row-title">KDE Connect (Android/iOS)</div>
+            <button class="pillbtn primary tiny" @click="scanKdeDevices">↻ Procurar</button>
+          </div>
+          <div class="mute small">App oficial <b>KDE Connect</b> na mesma rede Wi-Fi.</div>
+          <div class="form-btns">
+            <input v-model="kdeIp" type="text" class="in tin grow" placeholder="IP do celular (ex: 192.168.0.42)" @keydown.enter="connectKdeIp(kdeIp)">
+            <button class="pillbtn tiny" :disabled="!kdeIp.trim()" @click="connectKdeIp(kdeIp)">Conectar IP</button>
+          </div>
+          <div class="scroll-list" style="max-height:76px">
+            <div v-for="kd in assistant.kdeDevices" :key="kd.deviceId" class="row-item">
+              <span class="ico-badge">{{ kd.connected ? '🟢' : '⚪' }}</span>
+              <div class="row-txt">
+                <div class="row-title">{{ kd.deviceName }} <span class="mute">{{ kd.batteryPct != null ? `· ${kd.batteryPct}%` : '' }}</span></div>
+                <div class="row-sub mute">{{ kd.ip }} · {{ kd.paired ? 'Pareado' : kd.pairRequestedByPeer ? 'Pedido pendente' : 'Não pareado' }}</div>
+              </div>
+              <template v-if="kd.pairRequestedByPeer">
+                <button class="pillbtn primary tiny" @click="pairKdeDevice(kd.deviceId, true)">Aceitar</button>
+                <button class="pillbtn tiny danger" @click="pairKdeDevice(kd.deviceId, false)">Recusar</button>
+              </template>
+              <template v-else-if="!kd.paired && kd.connected">
+                <button class="pillbtn primary tiny" @click="pairKdeDevice(kd.deviceId, true)">Parear</button>
+              </template>
+              <template v-else-if="kd.paired && kd.connected">
+                <button class="pillbtn tiny" title="Tocar celular" @click="findKdePhone(kd.deviceId)">🔔</button>
+                <button class="pillbtn tiny" title="Enviar clipboard" @click="sendClipboardKde(kd.deviceId)">📋</button>
+                <button class="pillbtn tiny danger" title="Desparear" @click="pairKdeDevice(kd.deviceId, false)">✕</button>
+              </template>
+            </div>
+            <div v-if="!assistant.kdeDevices.length" class="empty-sm">Nenhum dispositivo KDE Connect encontrado</div>
           </div>
         </div>
       </section>

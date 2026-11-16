@@ -279,6 +279,27 @@ const handlers: Record<string, (a: Record<string, unknown>) => unknown> = {
   phone_send_clipboard_to_phone: () => 'https://github.com/JosuehElelyon/ilha-dinamica',
   phone_ring_phone: () => undefined,
   phone_set_auto_pause_on_call: (a) => !!a.enabled,
+  kdeconnect_list_devices: () => ([
+    {
+      deviceId: 'kde-galaxy-s24',
+      deviceName: 'Galaxy S24 Ultra',
+      deviceType: 'phone',
+      ip: '192.168.0.42',
+      tcpPort: 1716,
+      paired: true,
+      pairRequestedByPeer: false,
+      connected: true,
+      batteryPct: 84,
+      charging: false,
+      lastSeenTs: Math.floor(Date.now() / 1000)
+    }
+  ]),
+  kdeconnect_scan: () => handlers.kdeconnect_list_devices({}),
+  kdeconnect_connect_ip: () => handlers.kdeconnect_list_devices({}),
+  kdeconnect_pair: () => handlers.kdeconnect_list_devices({}),
+  kdeconnect_find_my_phone: () => undefined,
+  kdeconnect_send_clipboard: () => 'Texto enviado via KDE Connect',
+  kdeconnect_ping: () => undefined,
   check_update: () => ({ available: true, version: '2.2.0', current: '2.1.0', notes: '' }),
   install_update: () => undefined,
   reset_position: () => emit('anchor', { x: 'center', y: 'top' })

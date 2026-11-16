@@ -178,6 +178,13 @@ fn main() {
             assistant::phone_send_clipboard_to_phone,
             assistant::phone_ring_phone,
             assistant::phone_set_auto_pause_on_call,
+            kdeconnect::kdeconnect_list_devices,
+            kdeconnect::kdeconnect_scan,
+            kdeconnect::kdeconnect_connect_ip,
+            kdeconnect::kdeconnect_pair,
+            kdeconnect::kdeconnect_find_my_phone,
+            kdeconnect::kdeconnect_send_clipboard,
+            kdeconnect::kdeconnect_ping,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

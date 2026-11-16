@@ -201,3 +201,17 @@ export interface AssistantSnapshot {
   devItems: DevWorkItem[]
 }
 
+export interface KdeDeviceInfo {
+  deviceId: string
+  deviceName: string
+  deviceType: string
+  ip: string
+  tcpPort: number
+  paired: boolean
+  pairRequestedByPeer: boolean
+  connected: boolean
+  batteryPct: number | null
+  charging: boolean
+  lastSeenTs: number
+}
+

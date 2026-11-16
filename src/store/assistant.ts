@@ -28,6 +28,7 @@ export const assistant = reactive({
   autoPauseOnCall: true,
   snap: structuredClone(EMPTY_SNAP) as AssistantSnapshot,
   pairing: null as PairingInfo | null,
+  kdeDevices: [] as import('../lib/types').KdeDeviceInfo[],
   githubDevice: null as GithubDeviceChallenge | null
 })
 
@@ -253,9 +254,64 @@ export function sendBirthdayWish(name: string) {
   api.runAction(`https://wa.me/?text=${encodeURIComponent(msg)}`)
 }
 
+export async function scanKdeDevices() {
+  assistant.error = ''
+  try {
+    assistant.kdeDevices = await api.kdeScan()
+    showToast({ icon: '📡', text: 'Procurando dispositivos KDE Connect na rede…', ms: 2000 })
+  } catch (e) {
+    assistant.error = String(e)
+  }
+}
+
+export async function connectKdeIp(ip: string) {
+  assistant.error = ''
+  try {
+    assistant.kdeDevices = await api.kdeConnectIp(ip)
+    showToast({ icon: '🔗', text: `Conectando a ${ip}…`, ms: 2200 })
+  } catch (e) {
+    assistant.error = String(e)
+  }
+}
+
+export async function pairKdeDevice(deviceId: string, accept: boolean) {
+  assistant.error = ''
+  try {
+    assistant.kdeDevices = await api.kdePair(deviceId, accept)
+    showToast({
+      icon: accept ? '🤝' : '🔌',
+      text: accept ? 'Pareamento KDE Connect enviado/aceito' : 'Dispositivo despareado',
+      ms: 2400
+    })
+  } catch (e) {
+    assistant.error = String(e)
+  }
+}
+
+export async function findKdePhone(deviceId: string) {
+  assistant.error = ''
+  try {
+    await api.kdeFindMyPhone(deviceId)
+    showToast({ icon: '🔔', text: 'Tocando celular via KDE Connect!', ms: 2400 })
+  } catch (e) {
+    assistant.error = String(e)
+  }
+}
+
+export async function sendClipboardKde(deviceId: string) {
+  assistant.error = ''
+  try {
+    const preview = await api.kdeSendClipboard(deviceId)
+    showToast({ icon: '📋', text: `Enviado via KDE Connect: ${preview}`, ms: 2400 })
+  } catch (e) {
+    assistant.error = String(e)
+  }
+}
+
 const listenersAttached = ref(false)
 export function initAssistant() {
   refreshAssistant()
+  api.kdeListDevices().then(list => (assistant.kdeDevices = list)).catch(() => {})
   if (listenersAttached.value) return
   listenersAttached.value = true
   api.onAssistantUpdate(s => {
@@ -263,5 +319,11 @@ export function initAssistant() {
   })
   api.onAssistantAlert(a => {
     alertIsland(a.title, a.body, a.icon)
+  })
+  api.onKdeUpdate(list => {
+    assistant.kdeDevices = list
+  })
+  api.onKdePairRequest(() => {
+    showToast({ icon: '📱', text: 'Pedido de pareamento KDE Connect recebido! Aceite na aba Celular.', alert: true, ms: 5000 })
   })
 }

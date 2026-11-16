@@ -3,7 +3,7 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 import { listen as tauriListen } from '@tauri-apps/api/event'
 import type {
-  Adapter, Anchor, AssistantSnapshot, BtState, Friend, Game, PairingInfo, PhoneSignalRecord, ProactiveAlert,
+  Adapter, Anchor, AssistantSnapshot, BtState, Friend, Game, KdeDeviceInfo, PairingInfo, PhoneSignalRecord, ProactiveAlert,
   SteamInfo, AppData, Clip, MrList, Org, RepoGitStatus, VpnResult, Devices, MediaInfo, Proc, ScanResult,
   SysInfo, VolInfo, WifiNet, WifiStatus
 } from './types'
@@ -125,6 +125,13 @@ export const api = {
   phoneSendClipboard: () => invoke<string>('phone_send_clipboard_to_phone'),
   phoneRing: (message?: string) => invoke<void>('phone_ring_phone', { message: message ?? null }),
   phoneSetAutoPauseOnCall: (enabled: boolean) => invoke<boolean>('phone_set_auto_pause_on_call', { enabled }),
+  kdeListDevices: () => invoke<KdeDeviceInfo[]>('kdeconnect_list_devices'),
+  kdeScan: () => invoke<KdeDeviceInfo[]>('kdeconnect_scan'),
+  kdeConnectIp: (ip: string, port?: number) => invoke<KdeDeviceInfo[]>('kdeconnect_connect_ip', { ip, port: port ?? null }),
+  kdePair: (deviceId: string, accept: boolean) => invoke<KdeDeviceInfo[]>('kdeconnect_pair', { deviceId, accept }),
+  kdeFindMyPhone: (deviceId: string) => invoke<void>('kdeconnect_find_my_phone', { deviceId }),
+  kdeSendClipboard: (deviceId: string) => invoke<string>('kdeconnect_send_clipboard', { deviceId }),
+  kdePing: (deviceId: string, message?: string) => invoke<void>('kdeconnect_ping', { deviceId, message: message ?? null }),
 
   // eventos vindos do Rust
   onHover: (cb: (inside: boolean) => void) => on('hover', cb),
@@ -140,5 +147,7 @@ export const api = {
   onAutostart: (cb: (on: boolean) => void) => on('autostart', cb),
   onAssistantUpdate: (cb: (s: AssistantSnapshot) => void) => on('assistant-update', cb),
   onAssistantAlert: (cb: (a: ProactiveAlert) => void) => on('assistant-alert', cb),
-  onPhoneSignal: (cb: (s: PhoneSignalRecord) => void) => on('phone-signal', cb)
+  onPhoneSignal: (cb: (s: PhoneSignalRecord) => void) => on('phone-signal', cb),
+  onKdeUpdate: (cb: (list: KdeDeviceInfo[]) => void) => on('kdeconnect-update', cb),
+  onKdePairRequest: (cb: (deviceId: string) => void) => on('kdeconnect-pair-request', cb)
 }

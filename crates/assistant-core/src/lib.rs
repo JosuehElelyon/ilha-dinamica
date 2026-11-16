@@ -5,5 +5,6 @@
 pub mod bridge;
 pub mod db;
 pub mod domain;
+pub mod kdeconnect;
 pub mod normalizer;
 pub mod proactive;
